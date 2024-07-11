@@ -3,6 +3,7 @@ package com.bilicraft.biliwhitelistvelocity;
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
 import com.bilicraft.biliwhitelistvelocity.commands.WhiteListCommand;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
+import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.inject.Inject;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -31,21 +32,16 @@ import java.util.Map;
         version = "1.0-SNAPSHOT",
         authors = {"BigBrother"}
 )
+@Getter
 public class BiliWhiteListVelocity {
     public static final String PREFIX = "BiliWhiteList";
     public static BiliWhiteListVelocity instance;
-    @Getter
     private CacheForwardingService resolver;
     private ProfileCache cache;
-    @Getter
     private WhiteListManager whiteListManager ;
-    @Getter
     private BiliDatabase databaseManager;
-    @Getter
     private final ProxyServer server;
-    @Getter
     private final Logger logger;
-    @Getter
     private final Path dataDirectory;
 
     @Inject
@@ -62,7 +58,7 @@ public class BiliWhiteListVelocity {
         // 初始化数据库
         initDatabase();
         // 注册监听器
-        server.getEventManager().register(this, null);
+        server.getEventManager().register(this, new JoinListener(this));
         // 注册指令
         registerCommands();
     }
