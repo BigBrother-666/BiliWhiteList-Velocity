@@ -19,18 +19,14 @@ public class CommandBuilder {
     private static ProxyServer server;
 
     /**
-     * Reginster all commands
-     * @param velocityWhitelist
+     * 注册指令
      */
     public static void register(BiliWhiteListVelocity velocityWhitelist) {
         server = velocityWhitelist.getServer();
-        //Setup command flow
         final CommandHandler handler = new CommandHandler(velocityWhitelist);
+        // bcwhitelist系列指令
         server.getCommandManager().register(server.getCommandManager().metaBuilder("bcwhitelist").build(), new BrigadierCommand(
                 LiteralArgumentBuilder.<CommandSource>literal("bcwhitelist").requires(sender -> sender.hasPermission("bcwhitelist.admin")).executes(handler::about)
-                        .then(LiteralArgumentBuilder.<CommandSource>literal("on").executes(handler::turnOn))
-                        .then(LiteralArgumentBuilder.<CommandSource>literal("off").executes(handler::turnOff))
-
                         .then(LiteralArgumentBuilder.<CommandSource>literal("add").executes(handler::add))
                         .then(LiteralArgumentBuilder.<CommandSource>literal("add")
                                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("username", StringArgumentType.word())
@@ -42,6 +38,8 @@ public class CommandBuilder {
                                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("username", StringArgumentType.word())
                                 .suggests(CommandBuilder::allPlayers)
                                 .executes(handler::remove)))
+
+
 
                         .then(LiteralArgumentBuilder.<CommandSource>literal("reload").requires(source -> source.hasPermission("vgui.admin")).executes(handler::reload))
         ));

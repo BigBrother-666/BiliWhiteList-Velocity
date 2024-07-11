@@ -19,8 +19,6 @@ public class Config {
 
     @Getter @Setter
     private static boolean enabled;
-    @Getter
-    private static String message;
 
     /**
      * 加载配置文件
@@ -36,8 +34,8 @@ public class Config {
         // 如果配置文件不存在，复制默认配置文件
         Yaml yaml = new Yaml();
         if(!configFile.toFile().exists()) {
-            try (InputStream in = BiliWhiteListVelocity.class.getResourceAsStream("/config.yml")) {
-                Files.copy(in, configFile);
+            try (InputStream inputStream = BiliWhiteListVelocity.class.getResourceAsStream("/config.yml")) {
+                Files.copy(inputStream, configFile);
             } catch (Exception e) {
                 biliWhiteList.getLogger().error("config.yml初始化失败");
                 biliWhiteList.getLogger().error(e.getMessage());
