@@ -14,11 +14,16 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import lombok.Getter;
+import org.enginehub.squirrelid.cache.HashMapCache;
 import org.enginehub.squirrelid.cache.ProfileCache;
+import org.enginehub.squirrelid.cache.SQLiteCache;
 import org.enginehub.squirrelid.resolver.CacheForwardingService;
+import org.enginehub.squirrelid.resolver.HttpRepositoryService;
 import org.slf4j.Logger;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.Map;
 
 @Plugin(
         id = "biliwhitelist-velocity",
@@ -52,12 +57,34 @@ public class BiliWhiteListVelocity {
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        // 加载插件
+        // 加载插件配置
         Config.loadConfig(this);
+        // 初始化数据库
+        initDatabase();
         // 注册监听器
         server.getEventManager().register(this, null);
         // 注册指令
         registerCommands();
+    }
+
+    private void initDatabase() {
+        // 初始化NameMapping
+        try{
+            this.cache = new SQLiteCache(new File(dataDirectory.toFile(),"cache.db"));
+        }catch (Throwable throwable){
+            this.cache = new HashMapCache();
+        }
+
+        this.resolver = new CacheForwardingService(HttpRepositoryService.forMinecraft(), cache);
+        Map<String, Object> config = Config.getConfig();
+        this.databaseManager = new BiliDatabase(this,
+                (String) config.get("mysql.host"),
+                (String) config.get("mysql.user"),
+                (String) config.get("mysql.pass"),
+                (String) config.get("mysql.database"),
+                (Integer) config.get("mysql.port"),
+                (Boolean) config.get("mysql.usessl"));
+        this.whiteListManager = new WhiteListManager(this);
     }
 
     private void registerCommands(){
