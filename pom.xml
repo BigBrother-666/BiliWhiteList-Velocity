@@ -49,6 +49,10 @@
                                     <pattern>com.google.guava.guava.</pattern>
                                     <shadedPattern>com.bilicraft.biliwhitelistvelocity.shade.com.google.guava.guava.</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.yaml.snakeyaml.</pattern>
+                                    <shadedPattern>com.bilicraft.biliwhitelistvelocity.shade.org.yaml.snakeyaml.</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
