@@ -1,13 +1,13 @@
 package com.bilicraft.biliwhitelistvelocity;
 
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
-import com.bilicraft.biliwhitelistvelocity.commands.CommandBuilder;
+import com.bilicraft.biliwhitelistvelocity.commands.WhiteListCommand;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.inject.Inject;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.command.*;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -56,9 +56,17 @@ public class BiliWhiteListVelocity {
         Config.loadConfig(this);
         // 注册监听器
         server.getEventManager().register(this, null);
-        // 初始化指令
-        LiteralCommandNode<CommandSource> rootNode = LiteralArgumentBuilder.<CommandSource>literal("bcwhitelist").build();
         // 注册指令
-        CommandBuilder.register(this);
+        registerCommands();
+    }
+
+    private void registerCommands(){
+        CommandManager commandManager = server.getCommandManager();
+        CommandMeta commandMeta = commandManager.metaBuilder("bcwhitelist")
+//            .aliases("otherAlias", "anotherAlias")
+            .plugin(this)
+            .build();
+        SimpleCommand whiteListCommand = new WhiteListCommand(this);
+        commandManager.register(commandMeta, whiteListCommand);
     }
 }
