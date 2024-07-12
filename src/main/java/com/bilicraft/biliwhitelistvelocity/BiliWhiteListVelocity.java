@@ -48,6 +48,7 @@ public class BiliWhiteListVelocity {
         this.server = server;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
+        instance = this;
     }
 
     @Subscribe
