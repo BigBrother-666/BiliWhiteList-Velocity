@@ -49,10 +49,6 @@
                                     <pattern>com.google.guava.guava.</pattern>
                                     <shadedPattern>com.bilicraft.biliwhitelistvelocity.shade.com.google.guava.guava.</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>org.yaml.snakeyaml.</pattern>
-                                    <shadedPattern>com.bilicraft.biliwhitelistvelocity.shade.org.yaml.snakeyaml.</shadedPattern>
-                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
@@ -114,6 +110,10 @@
                     <artifactId>paper-api</artifactId>
                     <groupId>io.papermc.paper</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
+                </exclusion>
             </exclusions>
             <type>jar</type>
         </dependency>
@@ -124,14 +124,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.2</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>33.2.1-jre</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
