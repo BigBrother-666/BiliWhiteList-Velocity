@@ -87,17 +87,19 @@ public class BiliWhiteListVelocity {
      */
     private void registerCommands(){
         CommandManager commandManager = server.getCommandManager();
+
         // bcwhitelist
         CommandMeta commandMeta1 = commandManager.metaBuilder("bcwhitelist")
             .plugin(this)
             .build();
         SimpleCommand whiteListCommand = new WhiteListCommand(this);
         commandManager.register(commandMeta1, whiteListCommand);
+
         // whoinvite
         CommandMeta commandMeta2 = commandManager.metaBuilder("whoinvite")
             .plugin(this)
             .build();
-        WhoInviteCommand whoInviteCommand = new WhoInviteCommand(this);
+        SimpleCommand whoInviteCommand = new WhoInviteCommand(this);
         commandManager.register(commandMeta2, whoInviteCommand);
     }
 }
