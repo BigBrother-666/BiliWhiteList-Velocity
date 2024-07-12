@@ -30,7 +30,7 @@ public class WhiteListCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if (args.length < 2 && !args[0].equals("list")) {
+        if ((args.length == 1 && !args[0].equals("list")) || args.length == 0 ) {
             source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> [name/uuid] 或 /bcwhitelist list"));
             return;
         }
@@ -66,7 +66,7 @@ public class WhiteListCommand implements SimpleCommand {
                         case NO_RECORD:
                             plugin.getWhiteListManager().addWhite(uuid, new UUID(0,0));
                             source.sendMessage(Utils.coloredMessage("&a添加成功：" + args[1] + " # " + uuid));
-                            plugin.getLogger().info("&a白名单添加成功：{} # {}, 操作员：{}", args[1], uuid, invocation);
+                            plugin.getLogger().info("&a白名单添加成功：{} # {}, 操作员：{}", args[1], uuid, sender);
                             return;
                     }
                     break;
