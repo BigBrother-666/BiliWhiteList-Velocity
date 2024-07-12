@@ -62,7 +62,7 @@ public class InviteListCommand implements SimpleCommand {
 
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return SimpleCommand.super.suggestAsync(invocation);
+        return CompletableFuture.completedFuture(Utils.getAllPlayerName());
     }
 
     @Override

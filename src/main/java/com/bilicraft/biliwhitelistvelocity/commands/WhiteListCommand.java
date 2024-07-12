@@ -134,7 +134,7 @@ public class WhiteListCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return SimpleCommand.super.suggest(invocation);
+        return List.of("add","remove", "query", "block", "list");
     }
 
     @Override

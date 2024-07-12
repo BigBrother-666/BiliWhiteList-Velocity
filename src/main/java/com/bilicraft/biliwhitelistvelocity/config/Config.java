@@ -42,11 +42,12 @@ public class Config {
             }
         }
         // 加载配置到内存
-         try (InputStream inputStream = new FileInputStream(configFile.toFile())) {
-             config = yaml.load(inputStream);
-         } catch (Exception e) {
-             biliWhiteList.getLogger().error("config.yml加载失败");
-             biliWhiteList.getLogger().error(e.getMessage());
+        try (InputStream inputStream = new FileInputStream(configFile.toFile())) {
+            config = yaml.load(inputStream);
+        } catch (Exception e) {
+            biliWhiteList.getLogger().error("config.yml加载失败");
+            biliWhiteList.getLogger().error(e.getMessage());
         }
+         biliWhiteList.getLogger().info("配置文件加载成功");
     }
 }
