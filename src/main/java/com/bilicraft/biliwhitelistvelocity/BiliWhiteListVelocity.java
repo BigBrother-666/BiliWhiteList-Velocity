@@ -28,7 +28,8 @@ import java.util.Map;
         id = "biliwhitelist-velocity",
         name = "BiliWhiteList-Velocity",
         version = "1.0-SNAPSHOT",
-        authors = {"BigBrother"}
+        description = "Velocity version of BiliWhiteList plugin",
+        authors = {"Ghost_chu", "BlackFoxSAR", "BigBrother"}
 )
 @Getter
 public class BiliWhiteListVelocity {
