@@ -21,7 +21,7 @@
 * `/bcwhitelist query <player>` - 查询玩家白名单状态(无/管理添加/玩家邀请/回绝)
 * `/bcwhitelist list` - 输出所有白名单玩家列表
 * `/bcwhitelist block <player>` - 回绝特定玩家
-* `/bcwhitelist reload <player>` - 重载配置文件
+* `/bcwhitelist reload` - 重载配置文件
 * `/bcservermark <server-name-in-proxy> <bool>` - 设置指定服务器是否需要白名单
 * `/whoinvite <player>` - 查询指定玩家被谁邀请
 * `/bcinvitelist <player>` - 查询指定玩家邀请了谁
