@@ -2,19 +2,18 @@ package com.bilicraft.biliwhitelistvelocity.commands;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.common.Utils;
-import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.common.collect.ImmutableList;
-import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.api.proxy.Player;
 import org.enginehub.squirrelid.Profile;
 
 import java.io.IOException;
-import java.util.UUID;
-import java.util.StringJoiner;
 import java.util.List;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 

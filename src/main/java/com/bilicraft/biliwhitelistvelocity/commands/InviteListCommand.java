@@ -1,15 +1,14 @@
 package com.bilicraft.biliwhitelistvelocity.commands;
 
+import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
-import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import org.enginehub.squirrelid.Profile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 public class InviteListCommand implements SimpleCommand {
     private final BiliWhiteListVelocity plugin;
@@ -36,20 +35,19 @@ public class InviteListCommand implements SimpleCommand {
                 return;
             }
 
-            List<UUID> inviteds = plugin.getWhiteListManager().queryRecords().stream().map(WhiteListManager.QueryResult::getInviter).toList();
+            List<WhiteListManager.QueryResult> queryResults = plugin.getWhiteListManager().queryRecords();
 
-            for (UUID invited : inviteds) {
+            for (WhiteListManager.QueryResult queryResult : queryResults) {
                 try {
-                    // 跳过非邀请加入的玩家
-                    if (invited.equals(new UUID(0, 0))){
+                    if (!queryResult.getInviter().equals(profile.getUniqueId())){
                         continue;
                     }
-                    Profile invitedProfile = plugin.getResolver().findByUuid(invited);
+                    Profile invitedProfile = plugin.getResolver().findByUuid(queryResult.getUuid());
                     if (invitedProfile != null) {
                         source.sendMessage(Utils.coloredMessage("&e- &3" + invitedProfile.getName() + "&8 (" + invitedProfile.getUniqueId() + ")"));
                     }
                 } catch (IllegalArgumentException exception){
-                    source.sendMessage(Utils.coloredMessage("&e- &3" + "读取失败" + "&8 (" + invited.toString() + ")"));
+                    source.sendMessage(Utils.coloredMessage("&e- &3" + "读取失败" + "&8 (" + queryResult.getUuid() + ")"));
                 }
             }
             source.sendMessage(Utils.coloredMessage("&b查询完毕！"));
