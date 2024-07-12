@@ -29,7 +29,7 @@ public class WhiteListCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if ((args.length == 1 && !args[0].equals("list")) || args.length == 0 ) {
+        if ((args.length == 1 && !args[0].equals("list")) || args.length == 0) {
             source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> [name/uuid] 或 /bcwhitelist list"));
             return;
         }
@@ -37,14 +37,14 @@ public class WhiteListCommand implements SimpleCommand {
         String sender = "";
         if (source instanceof Player) {
             sender = ((Player) source).getUsername();
-        } else if (source instanceof ConsoleCommandSource){
+        } else if (source instanceof ConsoleCommandSource) {
             sender = "Console";
         }
 
         try {
             UUID uuid = null;
             // 非list指令需要uuid
-            if (!args[0].equals("list")){
+            if (!args[0].equals("list")) {
                 Profile profile = plugin.getResolver().findByName(args[1]);
                 if (profile == null) {
                     source.sendMessage(Utils.coloredMessage("&c该玩家不存在"));
@@ -55,7 +55,7 @@ public class WhiteListCommand implements SimpleCommand {
 
             switch (args[0]) {
                 case "add":
-                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)){
+                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)) {
                         case BLOCKED:
                             source.sendMessage(Utils.coloredMessage("&c添加失败：" + args[1] + " 位于回绝名单中"));
                             return;
@@ -63,14 +63,14 @@ public class WhiteListCommand implements SimpleCommand {
                             source.sendMessage(Utils.coloredMessage("&e添加失败：" + args[1] + " 已在白名单中"));
                             return;
                         case NO_RECORD:
-                            plugin.getWhiteListManager().addWhite(uuid, new UUID(0,0));
+                            plugin.getWhiteListManager().addWhite(uuid, new UUID(0, 0));
                             source.sendMessage(Utils.coloredMessage("&a添加成功：" + args[1] + " # " + uuid));
                             plugin.getLogger().info("&a白名单添加成功：{} # {}, 操作员：{}", args[1], uuid, sender);
                             return;
                     }
                     break;
                 case "remove":
-                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)){
+                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)) {
                         case NO_RECORD:
                             source.sendMessage(Utils.coloredMessage("&c删除失败：" + args[1] + " 不在白名单或者回绝列表中"));
                             return;
@@ -87,7 +87,7 @@ public class WhiteListCommand implements SimpleCommand {
                     }
                     break;
                 case "list":
-                    StringJoiner builder = new StringJoiner(",","","");
+                    StringJoiner builder = new StringJoiner(",", "", "");
                     source.sendMessage(Utils.coloredMessage("&b请稍等，这可能需要一会儿..."));
                     List<UUID> queryResultList = plugin.getWhiteListManager().queryRecords().stream().map(
                             WhiteListManager.QueryResult::getUuid
@@ -99,7 +99,7 @@ public class WhiteListCommand implements SimpleCommand {
                     source.sendMessage(Utils.coloredMessage("&a白名单玩家：" + builder));
                     break;
                 case "query":
-                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)){
+                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)) {
                         case BLOCKED:
                             source.sendMessage(Utils.coloredMessage("&c目标玩家处于回绝名单中，无法进入内服，且无法再添加他的白名单"));
                             return;
@@ -112,13 +112,13 @@ public class WhiteListCommand implements SimpleCommand {
                     }
                     break;
                 case "block":
-                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)){
+                    switch (plugin.getWhiteListManager().checkWhiteList(uuid)) {
                         case BLOCKED:
                             source.sendMessage(Utils.coloredMessage("&c目标玩家已处于回绝名单中"));
                             return;
                         case NO_RECORD:
                         case WHITELISTED:
-                            plugin.getWhiteListManager().setBlock(uuid,true);
+                            plugin.getWhiteListManager().setBlock(uuid, true);
                             source.sendMessage(Utils.coloredMessage("&a成功设置目标玩家状态为回绝"));
                             return;
                     }
@@ -133,11 +133,11 @@ public class WhiteListCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return List.of("add","remove", "query", "block", "list");
+        return List.of("add", "remove", "query", "block", "list");
     }
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("biliwhitelist.admin");
+        return invocation.source().hasPermission("biliwhitelist.bcwhitelist");
     }
 }

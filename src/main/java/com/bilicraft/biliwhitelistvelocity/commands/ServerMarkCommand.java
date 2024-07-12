@@ -49,7 +49,7 @@ public class ServerMarkCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("biliwhitelist.admin");
+        return invocation.source().hasPermission("biliwhitelist.bcservermark");
     }
 
     private List<String> getAllServerName(){

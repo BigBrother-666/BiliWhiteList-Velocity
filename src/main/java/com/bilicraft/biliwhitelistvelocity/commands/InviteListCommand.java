@@ -40,6 +40,10 @@ public class InviteListCommand implements SimpleCommand {
 
             for (UUID invited : inviteds) {
                 try {
+                    // 跳过非邀请加入的玩家
+                    if (invited.equals(new UUID(0, 0))){
+                        continue;
+                    }
                     Profile invitedProfile = plugin.getResolver().findByUuid(invited);
                     if (invitedProfile != null) {
                         source.sendMessage(Utils.coloredMessage("&e- &3" + invitedProfile.getName() + "&8 (" + invitedProfile.getUniqueId() + ")"));
@@ -61,6 +65,6 @@ public class InviteListCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("biliwhitelist.admin");
+        return invocation.source().hasPermission("biliwhitelist.bcinvitelist");
     }
 }

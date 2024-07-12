@@ -41,7 +41,7 @@ public class WhoInviteCommand implements SimpleCommand {
                 source.sendMessage(Utils.coloredMessage("&c该玩家无人邀请或网络故障"));
                 return;
             }
-            if(result.getInviter().equals(new UUID(0,0))){
+            if(result.getInviter().equals(new UUID(0, 0))) {
                 source.sendMessage(Utils.coloredMessage("&a查询结果: 管理员操作"));
                 return;
             }
@@ -63,6 +63,6 @@ public class WhoInviteCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("biliwhitelist.admin");
+        return invocation.source().hasPermission("biliwhitelist.whoinvite");
     }
 }

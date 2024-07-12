@@ -30,10 +30,10 @@
 * `/bcinvite <player>` - 邀请玩家
 
 ## 权限
-| 命令           | 权限                     |
-|--------------|------------------------|
-| bcwhitelist  | biliwhitelist.admin    |
-| bcservermark | biliwhitelist.admin    |
-| whoinvite    | biliwhitelist.admin    |
-| bcinvitelist | biliwhitelist.admin    |
-| bcinvite     | biliwhitelist.bcinvite |
+| 命令           | 权限                         |
+|--------------|----------------------------|
+| bcwhitelist  | biliwhitelist.bcwhitelist  |
+| bcservermark | biliwhitelist.bcservermark |
+| whoinvite    | biliwhitelist.whoinvite    |
+| bcinvitelist | biliwhitelist.bcinvitelist |
+| bcinvite     | biliwhitelist.bcinvite     |
