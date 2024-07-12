@@ -1,21 +1,18 @@
 package com.bilicraft.biliwhitelistvelocity.listeners;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
+import com.bilicraft.biliwhitelistvelocity.Utils;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.LoginEvent;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.enginehub.squirrelid.Profile;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class JoinListener {
@@ -31,7 +28,7 @@ public class JoinListener {
         String playerName = event.getPlayer().getUsername();
 
         if (playerUniqueId == null) {
-            TextComponent kickMessage = LegacyComponentSerializer.legacyAmpersand().deserialize("请使用正版 Minecraft 账号登录");
+            TextComponent kickMessage = Utils.coloredMessage("请使用正版 Minecraft 账号登录");
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} 不是正版 Minecraft 账号，已拒绝", playerName);
             return;
@@ -53,7 +50,7 @@ public class JoinListener {
         }
         WhiteListManager.RecordStatus status = plugin.getWhiteListManager().checkWhiteList(playerUniqueId);
         if (status != WhiteListManager.RecordStatus.WHITELISTED) {
-            TextComponent kickMessage = LegacyComponentSerializer.legacyAmpersand().deserialize((String) Config.getConfig().get("messages.no-whitelist"));
+            TextComponent kickMessage = Utils.coloredMessage((String) Config.getConfig().get("messages.no-whitelist"));
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} # {} 没有白名单，已拒绝", playerName, playerUniqueId);
         } else {
