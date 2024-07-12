@@ -9,22 +9,17 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.yaml.snakeyaml.Yaml;
 
 public class Config {
     @Getter
     private static Map<String, Object> config;
-    private static Path configFile;
-
-    @Getter @Setter
-    private static boolean enabled;
 
     /**
      * 加载配置文件
      */
     public static void loadConfig(BiliWhiteListVelocity biliWhiteList) {
-        configFile = Path.of(biliWhiteList.getDataDirectory() + "/config.yml");
+        Path configFile = Path.of(biliWhiteList.getDataDirectory() + "/config.yml");
 
         // 创建配置路径
         if(!biliWhiteList.getDataDirectory().toFile().exists()) {

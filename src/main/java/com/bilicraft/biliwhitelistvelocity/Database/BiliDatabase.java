@@ -17,6 +17,11 @@ public class BiliDatabase {
                          @NotNull String database,
                          int port,
                          boolean useSSL){
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl( "jdbc:mysql://" + host + ":" + port + "/" + database);
         config.setUsername(user);

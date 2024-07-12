@@ -13,6 +13,7 @@ import net.kyori.adventure.text.TextComponent;
 import org.enginehub.squirrelid.Profile;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class JoinListener {
@@ -26,9 +27,11 @@ public class JoinListener {
     public void onPlayerJoin(LoginEvent event) {
         UUID playerUniqueId = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getUsername();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> messages = (Map<String, Object>) Config.getConfig().get("messages");
 
         if (playerUniqueId == null) {
-            TextComponent kickMessage = Utils.coloredMessage((String) Config.getConfig().get("messages.no-licensed-account"));
+            TextComponent kickMessage = Utils.coloredMessage((String) messages.get("messages.no-licensed-account"));
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} 不是正版 Minecraft 账号，已拒绝", playerName);
             return;
@@ -50,7 +53,7 @@ public class JoinListener {
         }
         WhiteListManager.RecordStatus status = plugin.getWhiteListManager().checkWhiteList(playerUniqueId);
         if (status != WhiteListManager.RecordStatus.WHITELISTED) {
-            TextComponent kickMessage = Utils.coloredMessage((String) Config.getConfig().get("messages.no-whitelist"));
+            TextComponent kickMessage = Utils.coloredMessage((String) messages.get("messages.no-whitelist"));
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} # {} 没有白名单，已拒绝", playerName, playerUniqueId);
         } else {

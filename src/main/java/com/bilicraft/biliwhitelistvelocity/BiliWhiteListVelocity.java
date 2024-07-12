@@ -71,14 +71,15 @@ public class BiliWhiteListVelocity {
         }
 
         this.resolver = new CacheForwardingService(HttpRepositoryService.forMinecraft(), cache);
-        Map<String, Object> config = Config.getConfig();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mysql = (Map<String, Object>) Config.getConfig().get("mysql");
         this.databaseManager = new BiliDatabase(this,
-                (String) config.get("mysql.host"),
-                (String) config.get("mysql.user"),
-                (String) config.get("mysql.pass"),
-                (String) config.get("mysql.database"),
-                (Integer) config.get("mysql.port"),
-                (Boolean) config.get("mysql.usessl"));
+                (String) mysql.get("host"),
+                (String) mysql.get("user"),
+                (String) mysql.get("pass"),
+                (String) mysql.get("database"),
+                (Integer) mysql.get("port"),
+                (Boolean) mysql.get("usessl"));
         this.whiteListManager = new WhiteListManager(this);
     }
 
