@@ -25,7 +25,7 @@ public class InviteCommand implements SimpleCommand {
         String[] args = invocation.arguments();
 
         if(!(source instanceof Player)){
-            source.sendMessage(Utils.coloredMessage("&c该命令仅可在游戏内执行，后台请使用：bcwhitelist add [name/uuid]"));
+            source.sendMessage(Utils.coloredMessage("&c该命令仅可在游戏内执行，后台请使用：bcwhitelist add <游戏ID>"));
             return;
         }
         if (args.length < 1) {

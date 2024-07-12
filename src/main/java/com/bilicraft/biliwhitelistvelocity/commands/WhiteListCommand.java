@@ -2,6 +2,7 @@ package com.bilicraft.biliwhitelistvelocity.commands;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.common.Utils;
+import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.command.SimpleCommand;
@@ -29,8 +30,8 @@ public class WhiteListCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if ((args.length == 1 && !args[0].equals("list")) || args.length == 0) {
-            source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> [name/uuid] 或 /bcwhitelist list"));
+        if ((args.length == 1 && !args[0].equals("list") && !args[0].equals("reload")) || args.length == 0) {
+            source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> <游戏ID> 或 /bcwhitelist <list/reload>"));
             return;
         }
         source.sendMessage(Utils.coloredMessage("&b正在处理..."));
@@ -122,6 +123,12 @@ public class WhiteListCommand implements SimpleCommand {
                             source.sendMessage(Utils.coloredMessage("&a成功设置目标玩家状态为回绝"));
                             return;
                     }
+                    break;
+                case "reload":
+                    // 重载配置
+                    Config.loadConfig(plugin);
+                    // 重新初始化数据库
+                    plugin.initDatabase();
                     break;
                 default:
                     source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> [name/uuid] 或 /bcwhitelist list"));
