@@ -2,6 +2,7 @@ package com.bilicraft.biliwhitelistvelocity;
 
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
 import com.bilicraft.biliwhitelistvelocity.commands.*;
+import com.bilicraft.biliwhitelistvelocity.common.HttpRepositoryServicePatched;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
@@ -17,7 +18,6 @@ import org.enginehub.squirrelid.cache.HashMapCache;
 import org.enginehub.squirrelid.cache.ProfileCache;
 import org.enginehub.squirrelid.cache.SQLiteCache;
 import org.enginehub.squirrelid.resolver.CacheForwardingService;
-import org.enginehub.squirrelid.resolver.HttpRepositoryService;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -71,7 +71,7 @@ public class BiliWhiteListVelocity {
             this.cache = new HashMapCache();
         }
 
-        this.resolver = new CacheForwardingService(HttpRepositoryService.forMinecraft(), cache);
+        this.resolver = new CacheForwardingService(HttpRepositoryServicePatched.forMinecraft(), cache);
         @SuppressWarnings("unchecked")
         Map<String, Object> mysql = (Map<String, Object>) Config.getConfig().get("mysql");
         this.databaseManager = new BiliDatabase(this,

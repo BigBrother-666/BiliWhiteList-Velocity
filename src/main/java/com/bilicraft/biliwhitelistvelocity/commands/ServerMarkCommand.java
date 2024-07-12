@@ -1,13 +1,12 @@
 package com.bilicraft.biliwhitelistvelocity.commands;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
-import com.bilicraft.biliwhitelistvelocity.Utils;
+import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class ServerMarkCommand implements SimpleCommand {
     private final BiliWhiteListVelocity plugin;

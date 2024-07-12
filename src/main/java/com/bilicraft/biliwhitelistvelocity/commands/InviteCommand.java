@@ -1,6 +1,6 @@
 package com.bilicraft.biliwhitelistvelocity.commands;
 
-import com.bilicraft.biliwhitelistvelocity.Utils;
+import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.velocitypowered.api.command.CommandSource;
@@ -9,9 +9,7 @@ import com.velocitypowered.api.proxy.Player;
 import org.enginehub.squirrelid.Profile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 
 public class InviteCommand implements SimpleCommand {

@@ -2,7 +2,7 @@ package com.bilicraft.biliwhitelistvelocity.manager;
 
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
-import com.bilicraft.biliwhitelistvelocity.Utils;
+import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
@@ -134,7 +134,9 @@ public class WhiteListManager {
         try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM `" + serversTableName + "` WHERE server_name = ? LIMIT 1");
             preparedStatement.setString(1, server);
-            return preparedStatement.execute();
+            preparedStatement.execute();
+            ResultSet rs = preparedStatement.getResultSet();
+            return rs.next();
         } catch (SQLException exception) {
             plugin.getLogger().error(exception.toString());
             return false;

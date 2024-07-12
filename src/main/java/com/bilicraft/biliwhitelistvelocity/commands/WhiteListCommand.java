@@ -1,7 +1,7 @@
 package com.bilicraft.biliwhitelistvelocity.commands;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
-import com.bilicraft.biliwhitelistvelocity.Utils;
+import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.command.SimpleCommand;
@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.StringJoiner;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
