@@ -2,7 +2,7 @@ package com.bilicraft.biliwhitelistvelocity.manager;
 
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
-import com.bilicraft.biliwhitelistvelocity.Database.Utils;
+import com.bilicraft.biliwhitelistvelocity.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
