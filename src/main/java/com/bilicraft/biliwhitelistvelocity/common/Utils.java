@@ -1,5 +1,6 @@
-package com.bilicraft.biliwhitelistvelocity;
+package com.bilicraft.biliwhitelistvelocity.common;
 
+import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
