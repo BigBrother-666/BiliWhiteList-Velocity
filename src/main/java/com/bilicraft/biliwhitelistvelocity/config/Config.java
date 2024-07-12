@@ -49,18 +49,4 @@ public class Config {
              biliWhiteList.getLogger().error(e.getMessage());
         }
     }
-
-    /**
-     * 保存配置文件
-     */
-    public static void saveConfig(BiliWhiteListVelocity biliWhiteList) {
-
-    }
-
-    /**
-     * 保存白名单
-     */
-//    public static void saveWhitelist(BiliWhiteListVelocity biliWhiteList) {
-//
-//    }
 }
