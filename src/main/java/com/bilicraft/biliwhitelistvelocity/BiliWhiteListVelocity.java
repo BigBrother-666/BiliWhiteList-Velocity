@@ -113,13 +113,13 @@ public class BiliWhiteListVelocity {
             .plugin(this)
             .build();
         SimpleCommand inviteListCommand = new InviteListCommand(this);
-        commandManager.register(commandMeta4, whoInviteCommand);
+        commandManager.register(commandMeta4, inviteListCommand);
 
         // bcservermark
         CommandMeta commandMeta5 = commandManager.metaBuilder("bcservermark")
             .plugin(this)
             .build();
         SimpleCommand serverMarkCommand = new ServerMarkCommand(this);
-        commandManager.register(commandMeta5, whoInviteCommand);
+        commandManager.register(commandMeta5, serverMarkCommand);
     }
 }
