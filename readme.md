@@ -13,6 +13,7 @@
 * 回绝名单管理，被加入回绝名单的玩家无法被邀请或再次添加白名单
 * 邀请历史查询，双向历史查询，查看玩家邀请了谁/谁被谁邀请
 * 基于 MySQL 的多实例支持
+* 新增：重载配置
 
 ## 命令
 
@@ -26,3 +27,12 @@
 * `/whoinvite <player>` - 查询指定玩家被谁邀请
 * `/bcinvitelist <player>` - 查询指定玩家邀请了谁
 * `/bcinvite <player>` - 邀请玩家
+
+## 权限
+| 命令           | 权限                     |
+|--------------|------------------------|
+| bcwhitelist  | biliwhitelist.admin    |
+| bcservermark | biliwhitelist.admin    |
+| whoinvite    | biliwhitelist.admin    |
+| bcinvitelist | biliwhitelist.admin    |
+| bcinvite     | biliwhitelist.bcinvite |
