@@ -67,7 +67,7 @@ public class WhiteListManager {
                     UUID.fromString(set.getString("inviter"))
             );
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return null;
         }
     }
@@ -88,7 +88,7 @@ public class WhiteListManager {
             }
             return results;
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return Collections.emptyList();
         }
     }
@@ -101,7 +101,7 @@ public class WhiteListManager {
             preparedStatement.setString(3, result.getInviter().toString());
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
@@ -112,7 +112,7 @@ public class WhiteListManager {
             preparedStatement.setString(1, player.toString());
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
@@ -125,7 +125,7 @@ public class WhiteListManager {
             preparedStatement.setString(3, result.getUuid().toString());
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
@@ -136,7 +136,7 @@ public class WhiteListManager {
             preparedStatement.setString(1, server);
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
@@ -148,7 +148,7 @@ public class WhiteListManager {
             preparedStatement.setString(2, server);
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
@@ -159,7 +159,7 @@ public class WhiteListManager {
             preparedStatement.setString(1, server);
             return preparedStatement.execute();
         } catch (SQLException exception) {
-            exception.printStackTrace();
+            plugin.getLogger().error(exception.toString());
             return false;
         }
     }
