@@ -12,9 +12,13 @@ public class Utils {
         return i != 0;
     }
 
-    public static int boolToInt(boolean bool){
-        if(bool)
+    public static int boolToInt(boolean bool) {
+        if (bool)
             return 1;
         return 0;
+    }
+
+    public static void broadcast(String content) {
+        BiliWhiteListVelocity.instance.getServer().sendMessage(coloredMessage(content));
     }
 }

@@ -1,8 +1,7 @@
 package com.bilicraft.biliwhitelistvelocity;
 
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
-import com.bilicraft.biliwhitelistvelocity.commands.WhiteListCommand;
-import com.bilicraft.biliwhitelistvelocity.commands.WhoInviteCommand;
+import com.bilicraft.biliwhitelistvelocity.commands.*;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
@@ -101,5 +100,26 @@ public class BiliWhiteListVelocity {
             .build();
         SimpleCommand whoInviteCommand = new WhoInviteCommand(this);
         commandManager.register(commandMeta2, whoInviteCommand);
+
+        // bcinvite
+        CommandMeta commandMeta3 = commandManager.metaBuilder("bcinvite")
+            .plugin(this)
+            .build();
+        SimpleCommand inviteCommand = new InviteCommand(this);
+        commandManager.register(commandMeta3, inviteCommand);
+
+        // bcinvitelist
+        CommandMeta commandMeta4 = commandManager.metaBuilder("bcinvitelist")
+            .plugin(this)
+            .build();
+        SimpleCommand inviteListCommand = new InviteListCommand(this);
+        commandManager.register(commandMeta4, whoInviteCommand);
+
+        // bcservermark
+        CommandMeta commandMeta5 = commandManager.metaBuilder("bcservermark")
+            .plugin(this)
+            .build();
+        SimpleCommand serverMarkCommand = new ServerMarkCommand(this);
+        commandManager.register(commandMeta5, whoInviteCommand);
     }
 }
