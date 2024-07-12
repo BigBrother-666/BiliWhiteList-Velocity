@@ -93,6 +93,6 @@ public class InviteCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("biliwhitelist.admin");
+        return invocation.source().hasPermission("biliwhitelist.bcinvite");
     }
 }
