@@ -44,7 +44,10 @@ public class ServerMarkCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return getAllServerName();
+        if (invocation.arguments().length == 0)
+            return getAllServerName();
+        else
+            return List.of();
     }
 
     @Override

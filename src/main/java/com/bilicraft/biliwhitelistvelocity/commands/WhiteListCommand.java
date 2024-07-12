@@ -30,8 +30,8 @@ public class WhiteListCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if ((args.length == 1 && !args[0].equals("list") && !args[0].equals("reload")) || args.length == 0) {
-            source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> <游戏ID> 或 /bcwhitelist <list/reload>"));
+        if ((args.length == 1 && !args[0].equals("list")) || args.length == 0) {
+            source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> <游戏ID> 或 /bcwhitelist list"));
             return;
         }
         source.sendMessage(Utils.coloredMessage("&b正在处理..."));
@@ -124,14 +124,8 @@ public class WhiteListCommand implements SimpleCommand {
                             return;
                     }
                     break;
-                case "reload":
-                    // 重载配置
-                    Config.loadConfig(plugin);
-                    // 重新初始化数据库
-                    plugin.initDatabase();
-                    break;
                 default:
-                    source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> [name/uuid] 或 /bcwhitelist list"));
+                    source.sendMessage(Utils.coloredMessage("&c参数错误: /bcwhitelist <add/remove/query/block> <游戏ID> 或 /bcwhitelist list"));
             }
         } catch (InterruptedException | IOException e) {
             source.sendMessage(Utils.coloredMessage("&c内部错误，请稍后重试。错误代码：&7" + e.getMessage()));
@@ -140,7 +134,12 @@ public class WhiteListCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return List.of("add", "remove", "query", "block", "list");
+        if (invocation.arguments().length == 0)
+            return List.of("add", "remove", "query", "block", "list");
+        else if (invocation.arguments().length == 1)
+            return Utils.getAllPlayerName();
+        else
+            return List.of();
     }
 
     @Override

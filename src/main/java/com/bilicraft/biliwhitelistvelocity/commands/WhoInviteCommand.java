@@ -58,7 +58,10 @@ public class WhoInviteCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return Utils.getAllPlayerName();
+        if (invocation.arguments().length == 0)
+            return Utils.getAllPlayerName();
+        else
+            return List.of();
     }
 
     @Override
