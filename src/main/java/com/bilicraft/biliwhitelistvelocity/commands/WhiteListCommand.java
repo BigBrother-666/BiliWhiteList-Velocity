@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.StringJoiner;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
@@ -132,7 +133,17 @@ public class WhiteListCommand implements SimpleCommand {
     }
 
     @Override
+    public List<String> suggest(Invocation invocation) {
+        return SimpleCommand.super.suggest(invocation);
+    }
+
+    @Override
+    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
+        return SimpleCommand.super.suggestAsync(invocation);
+    }
+
+    @Override
     public boolean hasPermission(Invocation invocation) {
-        return SimpleCommand.super.hasPermission(invocation);
+        return invocation.source().hasPermission("biliwhitelist.admin");
     }
 }

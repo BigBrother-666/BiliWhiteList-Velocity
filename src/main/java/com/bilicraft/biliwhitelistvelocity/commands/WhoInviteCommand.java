@@ -69,6 +69,6 @@ public class WhoInviteCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return SimpleCommand.super.hasPermission(invocation);
+        return invocation.source().hasPermission("biliwhitelist.admin");
     }
 }
