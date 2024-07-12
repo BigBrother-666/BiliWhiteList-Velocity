@@ -28,7 +28,7 @@ public class JoinListener {
         String playerName = event.getPlayer().getUsername();
 
         if (playerUniqueId == null) {
-            TextComponent kickMessage = Utils.coloredMessage("请使用正版 Minecraft 账号登录");
+            TextComponent kickMessage = Utils.coloredMessage((String) Config.getConfig().get("messages.no-licensed-account"));
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} 不是正版 Minecraft 账号，已拒绝", playerName);
             return;

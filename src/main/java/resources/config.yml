@@ -7,3 +7,5 @@ mysql:
   usessl: false
 messages:
   no-whitelist: 抱歉，您没有此服务器的白名单，请先申请
+  no-licensed-account: 请使用正版 Minecraft 账号登录
+
