@@ -8,6 +8,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
+import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.TextComponent;
 import org.enginehub.squirrelid.Profile;
 
@@ -42,10 +43,14 @@ public class JoinListener {
         String username = event.getPlayer().getUsername();
         UUID uniqueId = event.getPlayer().getUniqueId();
         String previousServerName = null;
+        String targetServerName = event.getOriginalServer().getServerInfo().getName();
+        if (checkBypass(event.getPlayer())){
+            plugin.getLogger().info("玩家 {} # {} 具有bypass权限，放行：{}", username, uniqueId, targetServerName);
+            return;
+        }
         if (event.getPreviousServer() != null) {
             previousServerName = event.getPreviousServer().getServerInfo().getName();
         }
-        String targetServerName = event.getOriginalServer().getServerInfo().getName();
         if (!plugin.getWhiteListManager().isSeverRequireWhiteList(targetServerName)) {
             plugin.getLogger().info("玩家 {} # {} 例外列表放行：{}", username, uniqueId, targetServerName);
             return;
@@ -62,5 +67,9 @@ public class JoinListener {
         } else {
             plugin.getLogger().info("玩家 {} # {} 白名单放行：{}", username, uniqueId, targetServerName);
         }
+    }
+
+    private boolean checkBypass(Player player) {
+        return player.hasPermission("biliwhitelist.bypass");
     }
 }
