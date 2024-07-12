@@ -66,7 +66,7 @@ public class BiliWhiteListVelocity {
         registerCommands();
     }
 
-    private void initDatabase() {
+    public void initDatabase() {
         // 初始化NameMapping
         try{
             this.cache = new SQLiteCache(new File(dataDirectory.toFile(),"cache.db"));

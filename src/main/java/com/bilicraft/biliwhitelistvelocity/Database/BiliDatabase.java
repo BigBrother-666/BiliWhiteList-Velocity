@@ -9,30 +9,31 @@ import org.jetbrains.annotations.NotNull;
 import java.sql.*;
 
 public class BiliDatabase {
-    private final HikariDataSource ds ;
-    public BiliDatabase( @NotNull BiliWhiteListVelocity plugin,
-                         @NotNull String host,
-                         @NotNull String user,
-                         @NotNull String pass,
-                         @NotNull String database,
-                         int port,
-                         boolean useSSL){
+    private final HikariDataSource ds;
+
+    public BiliDatabase(@NotNull BiliWhiteListVelocity plugin,
+                        @NotNull String host,
+                        @NotNull String user,
+                        @NotNull String pass,
+                        @NotNull String database,
+                        int port,
+                        boolean useSSL) {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl( "jdbc:mysql://" + host + ":" + port + "/" + database);
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
         config.setUsername(user);
         config.setPassword(pass);
-        config.addDataSourceProperty("connection-timeout","60000");
-        config.addDataSourceProperty("validation-timeout","3000");
-        config.addDataSourceProperty("idle-timeout","60000");
-        config.addDataSourceProperty("login-timeout","5");
-        config.addDataSourceProperty("maxLifeTime","60000");
-        config.addDataSourceProperty("maximum-pool-size","8");
-        config.addDataSourceProperty("minimum-idle","10");
+        config.addDataSourceProperty("connection-timeout", "60000");
+        config.addDataSourceProperty("validation-timeout", "3000");
+        config.addDataSourceProperty("idle-timeout", "60000");
+        config.addDataSourceProperty("login-timeout", "5");
+        config.addDataSourceProperty("maxLifeTime", "60000");
+        config.addDataSourceProperty("maximum-pool-size", "8");
+        config.addDataSourceProperty("minimum-idle", "10");
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -40,7 +41,7 @@ public class BiliDatabase {
     }
 
     @SneakyThrows
-    public Connection getConnection(){
+    public Connection getConnection() {
         return ds.getConnection();
     }
 
