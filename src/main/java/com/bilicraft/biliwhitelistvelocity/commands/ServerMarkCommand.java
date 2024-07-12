@@ -45,12 +45,7 @@ public class ServerMarkCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return allServerName;
-    }
-
-    @Override
-    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return CompletableFuture.completedFuture(Utils.getAllPlayerName());
+        return getAllServerName();
     }
 
     @Override

@@ -138,11 +138,6 @@ public class WhiteListCommand implements SimpleCommand {
     }
 
     @Override
-    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return SimpleCommand.super.suggestAsync(invocation);
-    }
-
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("biliwhitelist.admin");
     }

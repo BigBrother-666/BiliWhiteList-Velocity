@@ -82,16 +82,6 @@ public class InviteCommand implements SimpleCommand {
     }
 
     @Override
-    public List<String> suggest(Invocation invocation) {
-        return SimpleCommand.super.suggest(invocation);
-    }
-
-    @Override
-    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return CompletableFuture.completedFuture(Utils.getAllPlayerName());
-    }
-
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("biliwhitelist.bcinvite");
     }
