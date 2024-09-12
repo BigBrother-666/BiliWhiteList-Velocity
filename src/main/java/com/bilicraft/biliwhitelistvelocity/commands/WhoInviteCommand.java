@@ -33,7 +33,7 @@ public class WhoInviteCommand implements SimpleCommand {
         try {
             Profile profile = plugin.getResolver().findByName(args[0]);
             if (profile == null) {
-                source.sendMessage(Utils.coloredMessage("&c您所邀请的玩家不存在，请检查用户名输入是否正确"));
+                source.sendMessage(Utils.coloredMessage("&c您所查询的玩家不存在，请检查用户名输入是否正确"));
                 return;
             }
             WhiteListManager.QueryResult result = plugin.getWhiteListManager().queryRecord(profile.getUniqueId());
