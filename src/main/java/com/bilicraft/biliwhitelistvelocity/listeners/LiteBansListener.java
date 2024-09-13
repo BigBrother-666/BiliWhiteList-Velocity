@@ -6,7 +6,7 @@ import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
-import litebans.api.Database;
+import com.velocitypowered.api.proxy.ProxyServer;
 import litebans.api.Entry;
 import litebans.api.Events;
 import org.enginehub.squirrelid.Profile;
@@ -68,23 +68,27 @@ public class LiteBansListener extends Events.Listener {
 
     private void punish(String inviterUuid, String inviterName, String inviteeName, String executorUUID) {
         CommandSource commandSource = getCommandSource(executorUUID);
+        if (commandSource == null) {
+            return;
+        }
         // 检查inviter是否在排除列表中
         @SuppressWarnings("unchecked")
         List<String> whitelist = (List<String>) conf.get("inviter-whitelist");
         if (whitelist.contains(inviterUuid)) {
             // 不处罚
-            commandSource.sendMessage(Utils.coloredMessage(""));
+            commandSource.sendMessage(Utils.coloredMessage("&a" + inviterName + "在连带处罚白名单中，不进行处罚"));
             return;
         }
 
-        if (!(Boolean) conf.get("auto")) {
-            // 管理员手动确认
-        }
+        // 执行处罚指令
         @SuppressWarnings("unchecked")
         List<String> cmd = (List<String>) conf.get("inviter-punishment");
+        ProxyServer server = plugin.getServer();
         for (String s : cmd) {
             s = s.replace("{inviter}", inviterName).replace("{invitee}", inviteeName);
+            server.getCommandManager().executeAsync(commandSource, s);
         }
+        commandSource.sendMessage(Utils.coloredMessage("&a连带处罚执行完成"));
     }
 
     private String[] getInviter(String inviteeUuid, String executorUUID) {

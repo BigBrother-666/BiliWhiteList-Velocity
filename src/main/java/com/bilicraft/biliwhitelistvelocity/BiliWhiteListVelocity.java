@@ -64,7 +64,7 @@ public class BiliWhiteListVelocity {
         initDatabase();
         // 注册监听器
         server.getEventManager().register(this, new JoinListener(this));
-//        Events.get().register(new LiteBansListener(this));
+        Events.get().register(new LiteBansListener(this));
         // 注册指令
         registerCommands();
     }

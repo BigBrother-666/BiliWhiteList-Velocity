@@ -14,9 +14,6 @@ messages:
 joint-liability:
   enable: true
 
-  # 自动处罚上级邀请人，为false时，需手动确认
-  auto: true
-
   # 被邀请人受到此天数及以上的ban时触发
   # -1为永久ban
   invitee-ban-duration: -1
