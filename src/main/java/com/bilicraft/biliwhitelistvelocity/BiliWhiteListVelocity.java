@@ -5,19 +5,14 @@ import com.bilicraft.biliwhitelistvelocity.commands.*;
 import com.bilicraft.biliwhitelistvelocity.common.HttpRepositoryServicePatched;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
-import com.bilicraft.biliwhitelistvelocity.listeners.LiteBansListener;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.inject.Inject;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.*;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
-import litebans.api.Events;
 import lombok.Getter;
 import org.enginehub.squirrelid.cache.HashMapCache;
 import org.enginehub.squirrelid.cache.ProfileCache;
@@ -64,7 +59,6 @@ public class BiliWhiteListVelocity {
         initDatabase();
         // 注册监听器
         server.getEventManager().register(this, new JoinListener(this));
-        Events.get().register(new LiteBansListener(this));
         // 注册指令
         registerCommands();
     }

@@ -9,20 +9,3 @@ messages:
   no-whitelist: 抱歉，您没有此服务器的白名单，请先申请
   no-licensed-account: 请使用正版 Minecraft 账号登录
   no-whitelist-switch: 抱歉，您没有白名单，无法连接到 {server} 服务器，请先申请
-
-# 连坐机制，需要 litebans
-joint-liability:
-  enable: true
-
-  # 被邀请人受到此天数及以上的ban时触发
-  # -1为永久ban
-  invitee-ban-duration: -1
-
-  # 邀请人受到的惩罚（指令）
-  # 可用占位符 {inviter} {invitee}
-  inviter-punishment:
-    - warn {inviter} 因{invitee}受到了封禁处罚，上级邀请人{inviter}受到连带处罚，警告一次
-
-  # 邀请人白名单（防止审核员被自动warn），填写不带分隔符的uuid
-  inviter-whitelist:
-    - 785b463fdd534307bcdb9a350e0cdc3d  # Rus_BigBrother
