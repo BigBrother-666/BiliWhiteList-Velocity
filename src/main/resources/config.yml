@@ -21,7 +21,7 @@ joint-liability:
   # 邀请人受到的惩罚（指令）
   # 可用占位符 {inviter} {invitee}
   inviter-punishment:
-    - warn {inviter} 因{invitee}受到了封禁处罚，上级邀请人{inviter}受到连带处罚，警告一次
+    - litebans:warn {inviter} 因{invitee}受到了封禁处罚，上级邀请人{inviter}受到连带处罚，警告一次
 
   # 邀请人白名单（防止审核员被自动warn），填写不带分隔符的uuid
   inviter-whitelist:

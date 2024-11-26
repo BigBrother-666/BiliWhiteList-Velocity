@@ -14,10 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class LiteBansListener extends Events.Listener {
     private final BiliWhiteListVelocity plugin;
@@ -36,15 +33,15 @@ public class LiteBansListener extends Events.Listener {
                 if (!(Boolean) conf.get("enable")) {
                     break;
                 }
-                String[] ret = getInviter(entry.getUuid(), entry.getExecutorUUID());
-                if (ret == null) {
-                    break;
-                }
-                String inviterUuid = ret[0];
-                String inviterName = ret[1];
-                String inviteeName = ret[2];
-                Long configDuration = (Long) conf.get("invitee-ban-duration");
-                if (entry.getDuration() >= configDuration) {
+                long configDuration = (int) conf.get("invitee-ban-duration");
+                if (configDuration < 0 && entry.getDuration() == -1 || configDuration >= 0 && entry.getDuration() >= configDuration) {
+                    String[] ret = getInviter(entry.getUuid(), entry.getExecutorUUID());
+                    if (ret == null) {
+                        break;
+                    }
+                    String inviterUuid = ret[0];
+                    String inviterName = ret[1];
+                    String inviteeName = ret[2];
                     // 符合连带处罚条件
                     punish(inviterUuid, inviterName, inviteeName, entry.getExecutorUUID());
                 }
@@ -73,8 +70,8 @@ public class LiteBansListener extends Events.Listener {
         }
         // 检查inviter是否在排除列表中
         @SuppressWarnings("unchecked")
-        List<String> whitelist = (List<String>) conf.get("inviter-whitelist");
-        if (whitelist.contains(inviterUuid)) {
+        List<String> whitelist = (List<String>) conf.getOrDefault("inviter-whitelist", Collections.emptyList());
+        if (whitelist != null && whitelist.contains(inviterUuid)) {
             // 不处罚
             commandSource.sendMessage(Utils.coloredMessage("&a" + inviterName + "在连带处罚白名单中，不进行处罚"));
             return;
@@ -82,11 +79,13 @@ public class LiteBansListener extends Events.Listener {
 
         // 执行处罚指令
         @SuppressWarnings("unchecked")
-        List<String> cmd = (List<String>) conf.get("inviter-punishment");
-        ProxyServer server = plugin.getServer();
-        for (String s : cmd) {
-            s = s.replace("{inviter}", inviterName).replace("{invitee}", inviteeName);
-            server.getCommandManager().executeAsync(commandSource, s);
+        List<String> cmd = (List<String>) conf.getOrDefault("inviter-punishment", Collections.emptyList());
+        if (cmd != null) {
+            ProxyServer server = plugin.getServer();
+            for (String s : cmd) {
+                s = s.replace("{inviter}", inviterName).replace("{invitee}", inviteeName);
+                server.getCommandManager().executeAsync(commandSource, s);
+            }
         }
         commandSource.sendMessage(Utils.coloredMessage("&a连带处罚执行完成"));
     }
@@ -129,7 +128,7 @@ public class LiteBansListener extends Events.Listener {
 
     private @Nullable CommandSource getCommandSource(String executorUUID) {
         CommandSource source;
-        if (executorUUID != null) {
+        if (executorUUID != null && !executorUUID.equals("[Console]")) {
             // 玩家执行的命令
             Optional<Player> player = plugin.getServer().getPlayer(UUID.fromString(executorUUID));
             if (player.isPresent()) {

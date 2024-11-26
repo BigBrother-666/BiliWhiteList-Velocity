@@ -24,7 +24,7 @@ public class InviteCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if(!(source instanceof Player)){
+        if (!(source instanceof Player)) {
             source.sendMessage(Utils.coloredMessage("&c该命令仅可在游戏内执行，后台请使用：bcwhitelist add <游戏ID>"));
             return;
         }
@@ -44,7 +44,7 @@ public class InviteCommand implements SimpleCommand {
             source.sendMessage(Utils.coloredMessage("&b正在处理，请稍等..."));
             try {
                 Profile profile = plugin.getResolver().findByName(args[0]);
-                if(profile == null){
+                if (profile == null) {
                     source.sendMessage(Utils.coloredMessage("&c您所邀请的玩家不存在，请检查用户名输入是否正确"));
                     return;
                 }
@@ -52,12 +52,12 @@ public class InviteCommand implements SimpleCommand {
                 UUID inviter = ((Player) source).getUniqueId();
                 String inviterUsername = ((Player) source).getUsername();
 
-                if(plugin.getWhiteListManager().checkWhiteList(inviter) != WhiteListManager.RecordStatus.WHITELISTED){
+                if (!source.hasPermission("biliwhitelist.bypass") && plugin.getWhiteListManager().checkWhiteList(inviter) != WhiteListManager.RecordStatus.WHITELISTED) {
                     source.sendMessage(Utils.coloredMessage("&c在邀请其他人之前，您需要先通过白名单认证！"));
                     return;
                 }
 
-                switch (plugin.getWhiteListManager().checkWhiteList(invited)){
+                switch (plugin.getWhiteListManager().checkWhiteList(invited)) {
                     case BLOCKED:
                         source.sendMessage(Utils.coloredMessage("&c您所邀请的玩家已被管理组回绝，无法邀请"));
                         return;
@@ -65,7 +65,7 @@ public class InviteCommand implements SimpleCommand {
                         source.sendMessage(Utils.coloredMessage("&c您所邀请的玩家当前已在白名单中，无需重复邀请"));
                         return;
                     case NO_RECORD:
-                        plugin.getWhiteListManager().addWhite(invited,inviter);
+                        plugin.getWhiteListManager().addWhite(invited, inviter);
                         source.sendMessage(Utils.coloredMessage("&a邀请成功"));
                         plugin.getLogger().info("玩家 {} 邀请了 {}", inviterUsername, args[0]);
                         Utils.broadcast("玩家 " + inviterUsername + " 邀请了 " + args[0]);
