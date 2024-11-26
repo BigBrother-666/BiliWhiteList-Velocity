@@ -8,15 +8,14 @@ import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.listeners.LiteBansListener;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.inject.Inject;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.*;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import litebans.api.Events;
 import lombok.Getter;
 import org.enginehub.squirrelid.cache.HashMapCache;
@@ -34,7 +33,10 @@ import java.util.Map;
         name = "BiliWhiteList-Velocity",
         version = "1.0-SNAPSHOT",
         description = "Velocity version of BiliWhiteList plugin",
-        authors = {"Ghost_chu", "BlackFoxSAR", "BigBrother"}
+        authors = {"Ghost_chu", "BlackFoxSAR", "BigBrother"},
+        dependencies = {
+                @Dependency(id = "litebans")
+        }
 )
 @Getter
 public class BiliWhiteListVelocity {
@@ -42,17 +44,19 @@ public class BiliWhiteListVelocity {
     public static BiliWhiteListVelocity instance;
     private CacheForwardingService resolver;
     private ProfileCache cache;
-    private WhiteListManager whiteListManager ;
+    private WhiteListManager whiteListManager;
     private BiliDatabase databaseManager;
     private final ProxyServer server;
     private final Logger logger;
     private final Path dataDirectory;
+    private final PluginManager pluginManager;
 
     @Inject
-    public BiliWhiteListVelocity(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+    public BiliWhiteListVelocity(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory, PluginManager pluginManager) {
         this.server = server;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
+        this.pluginManager = pluginManager;
         instance = this;
     }
 
@@ -71,9 +75,9 @@ public class BiliWhiteListVelocity {
 
     private void initDatabase() {
         // 初始化NameMapping
-        try{
-            this.cache = new SQLiteCache(new File(dataDirectory.toFile(),"cache.db"));
-        }catch (Throwable throwable){
+        try {
+            this.cache = new SQLiteCache(new File(dataDirectory.toFile(), "cache.db"));
+        } catch (Throwable throwable) {
             this.cache = new HashMapCache();
         }
 
@@ -93,41 +97,41 @@ public class BiliWhiteListVelocity {
     /**
      * 注册所有指令
      */
-    private void registerCommands(){
+    private void registerCommands() {
         CommandManager commandManager = server.getCommandManager();
 
         // bcwhitelist
         CommandMeta commandMeta1 = commandManager.metaBuilder("bcwhitelist")
-            .plugin(this)
-            .build();
+                .plugin(this)
+                .build();
         SimpleCommand whiteListCommand = new WhiteListCommand(this);
         commandManager.register(commandMeta1, whiteListCommand);
 
         // whoinvite
         CommandMeta commandMeta2 = commandManager.metaBuilder("whoinvite")
-            .plugin(this)
-            .build();
+                .plugin(this)
+                .build();
         SimpleCommand whoInviteCommand = new WhoInviteCommand(this);
         commandManager.register(commandMeta2, whoInviteCommand);
 
         // bcinvite
         CommandMeta commandMeta3 = commandManager.metaBuilder("bcinvite")
-            .plugin(this)
-            .build();
+                .plugin(this)
+                .build();
         SimpleCommand inviteCommand = new InviteCommand(this);
         commandManager.register(commandMeta3, inviteCommand);
 
         // bcinvitelist
         CommandMeta commandMeta4 = commandManager.metaBuilder("bcinvitelist")
-            .plugin(this)
-            .build();
+                .plugin(this)
+                .build();
         SimpleCommand inviteListCommand = new InviteListCommand(this);
         commandManager.register(commandMeta4, inviteListCommand);
 
         // bcservermark
         CommandMeta commandMeta5 = commandManager.metaBuilder("bcservermark")
-            .plugin(this)
-            .build();
+                .plugin(this)
+                .build();
         SimpleCommand serverMarkCommand = new ServerMarkCommand(this);
         commandManager.register(commandMeta5, serverMarkCommand);
     }
