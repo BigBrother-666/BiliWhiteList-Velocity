@@ -18,11 +18,12 @@ import java.util.*;
 
 public class LiteBansListener extends Events.Listener {
     private final BiliWhiteListVelocity plugin;
-    @SuppressWarnings("unchecked")
-    private final Map<String, Object> conf = (Map<String, Object>) Config.getConfig().get("joint-liability");
+    private final Map<String, Object> conf;
 
     public LiteBansListener(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
+        // noinspection unchecked
+        conf = (Map<String, Object>) Config.getConfig().get("joint-liability");
     }
 
     @Override
@@ -73,7 +74,7 @@ public class LiteBansListener extends Events.Listener {
         List<String> whitelist = (List<String>) conf.getOrDefault("inviter-whitelist", Collections.emptyList());
         if (whitelist != null && whitelist.contains(inviterUuid)) {
             // 不处罚
-            commandSource.sendMessage(Utils.coloredMessage("&a" + inviterName + "在连带处罚白名单中，不进行处罚"));
+            commandSource.sendMessage(Utils.coloredMessage("&e " + inviterName + " &a在连带处罚白名单中，不进行处罚"));
             return;
         }
 
@@ -112,7 +113,7 @@ public class LiteBansListener extends Events.Listener {
                 source.sendMessage(Utils.coloredMessage("&c查询上级邀请人时发生错误：所查询的玩家不存在"));
                 return null;
             }
-            source.sendMessage(Utils.coloredMessage("&a触发连带处罚机制，查询" + profile.getName() + "的上级邀请人..."));
+            source.sendMessage(Utils.coloredMessage("&a触发连带处罚机制，查询 " + profile.getName() + " 的上级邀请人..."));
             WhiteListManager.QueryResult result = plugin.getWhiteListManager().queryRecord(profile.getUniqueId());
             if (result == null) {
                 source.sendMessage(Utils.coloredMessage("&c" + profile.getName() + "无人邀请或网络故障"));
@@ -127,7 +128,7 @@ public class LiteBansListener extends Events.Listener {
                 source.sendMessage(Utils.coloredMessage("&c" + profile.getName() + "无人邀请、为虚拟玩家或者网络故障"));
                 return null;
             }
-            source.sendMessage(Utils.coloredMessage("&a" + profile.getName() + "的上级邀请人为: &e" + inviter.getName()));
+            source.sendMessage(Utils.coloredMessage("&a " + profile.getName() + " 的上级邀请人为: &e" + inviter.getName()));
             return new String[]{inviter.getUniqueId().toString().replace("-", ""), inviter.getName(), profile.getName()};
         } catch (IOException | InterruptedException exception) {
             source.sendMessage(Utils.coloredMessage("&c查询上级邀请人时发生内部错误。错误代码：&7" + exception.getMessage()));

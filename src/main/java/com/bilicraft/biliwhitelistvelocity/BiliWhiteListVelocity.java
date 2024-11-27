@@ -3,6 +3,7 @@ package com.bilicraft.biliwhitelistvelocity;
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
 import com.bilicraft.biliwhitelistvelocity.commands.*;
 import com.bilicraft.biliwhitelistvelocity.common.HttpRepositoryServicePatched;
+import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.listeners.LiteBansListener;
@@ -15,6 +16,7 @@ import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import litebans.api.Events;
 import lombok.Getter;
@@ -39,13 +41,16 @@ import java.util.Map;
         }
 )
 @Getter
-public class BiliWhiteListVelocity {
+public class BiliWhiteListVelocity implements SimpleCommand {
     public static final String PREFIX = "BiliWhiteList";
     public static BiliWhiteListVelocity instance;
     private CacheForwardingService resolver;
     private ProfileCache cache;
     private WhiteListManager whiteListManager;
     private BiliDatabase databaseManager;
+    private LiteBansListener liteBansListener;
+    private JoinListener joinListener;
+
     private final ProxyServer server;
     private final Logger logger;
     private final Path dataDirectory;
@@ -67,10 +72,16 @@ public class BiliWhiteListVelocity {
         // 初始化数据库
         initDatabase();
         // 注册监听器
-        server.getEventManager().register(this, new JoinListener(this));
-        Events.get().register(new LiteBansListener(this));
+        registerListener();
         // 注册指令
         registerCommands();
+    }
+
+    private void registerListener() {
+        joinListener = new JoinListener(this);
+        server.getEventManager().register(this, joinListener);
+        liteBansListener = new LiteBansListener(this);
+        Events.get().register(liteBansListener);
     }
 
     private void initDatabase() {
@@ -134,5 +145,41 @@ public class BiliWhiteListVelocity {
                 .build();
         SimpleCommand serverMarkCommand = new ServerMarkCommand(this);
         commandManager.register(commandMeta5, serverMarkCommand);
+
+        //bcreload
+        CommandMeta commandMeta6 = commandManager.metaBuilder("bcreload")
+                .plugin(this)
+                .build();
+        commandManager.register(commandMeta6, this);
+    }
+
+    /**
+     * 重载指令实现
+     */
+    @Override
+    public void execute(Invocation invocation) {
+        // 关闭数据源
+        this.databaseManager.getDs().close();
+        // 取消监听器
+        server.getEventManager().unregisterListener(this, joinListener);
+        Events.get().unregister(liteBansListener);
+        // 加载插件配置
+        Config.loadConfig(this);
+        // 初始化数据库
+        initDatabase();
+        if (invocation.source() instanceof Player player) {
+            player.sendMessage(Utils.coloredMessage("&a配置文件重载完成"));
+        }
+        // 注册监听器
+        registerListener();
+        logger.info("配置文件重载完成");
+    }
+
+    /**
+     * 重载指令权限检查
+     */
+    @Override
+    public boolean hasPermission(Invocation invocation) {
+        return invocation.source().hasPermission("biliwhitelist.bcreload");
     }
 }

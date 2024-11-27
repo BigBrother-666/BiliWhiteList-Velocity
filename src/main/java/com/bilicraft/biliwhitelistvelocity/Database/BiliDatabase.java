@@ -3,11 +3,13 @@ package com.bilicraft.biliwhitelistvelocity.Database;
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.*;
 
+@Getter
 public class BiliDatabase {
     private final HikariDataSource ds;
 
