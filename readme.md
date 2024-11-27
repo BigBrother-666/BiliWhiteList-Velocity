@@ -1,4 +1,5 @@
 # BiliWhiteList-Velocity
+
 [BiliWhiteList](https://github.com/Bilicraft-Community/BiliWhiteList) 的Velocity版本
 
 ## MySQL
@@ -13,8 +14,10 @@
 * 回绝名单管理，被加入回绝名单的玩家无法被邀请或再次添加白名单
 * 邀请历史查询，双向历史查询，查看玩家邀请了谁/谁被谁邀请
 * 基于 MySQL 的多实例支持
-* new：修复若干漏洞
-* new：新增白名单豁免权限
+* new: 修复若干漏洞
+* new: 新增白名单豁免权限
+* new: 联动litebans，支持自动执行连带处罚
+* new: 配置文件重载
 
 ## 命令
 
@@ -27,8 +30,10 @@
 * `/whoinvite <player>` - 查询指定玩家被谁邀请
 * `/bcinvitelist <player>` - 查询指定玩家邀请了谁
 * `/bcinvite <player>` - 邀请玩家
+* `/bcreload <player>` - 重载配置文件
 
 ## 权限
+
 | 命令/功能        | 权限                         |
 |--------------|----------------------------|
 | bcwhitelist  | biliwhitelist.bcwhitelist  |
@@ -36,5 +41,6 @@
 | whoinvite    | biliwhitelist.whoinvite    |
 | bcinvitelist | biliwhitelist.bcinvitelist |
 | bcinvite     | biliwhitelist.bcinvite     |
+| bcreload     | biliwhitelist.bcreload     |
 | 白名单豁免        | biliwhitelist.bypass       |
 
