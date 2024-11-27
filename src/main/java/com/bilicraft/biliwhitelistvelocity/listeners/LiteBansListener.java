@@ -34,7 +34,7 @@ public class LiteBansListener extends Events.Listener {
                     break;
                 }
                 long configDuration = (int) conf.get("invitee-ban-duration");
-                if (configDuration < 0 && entry.getDuration() == -1 || configDuration >= 0 && entry.getDuration() >= configDuration) {
+                if (configDuration < 0 && entry.isPermanent() || configDuration >= 0 && entry.getDuration() >= configDuration) {
                     String[] ret = getInviter(entry.getUuid(), entry.getExecutorUUID());
                     if (ret == null) {
                         break;
@@ -83,8 +83,17 @@ public class LiteBansListener extends Events.Listener {
         if (cmd != null) {
             ProxyServer server = plugin.getServer();
             for (String s : cmd) {
-                s = s.replace("{inviter}", inviterName).replace("{invitee}", inviteeName);
-                server.getCommandManager().executeAsync(commandSource, s);
+                s = s.replace("{inviter}", inviterName).replace("{invitee}", inviteeName).trim();
+                if (commandSource instanceof Player player && player.isActive() && !s.startsWith("litebans")) {
+                    // 非litebans指令由玩家身份执行（如果ban指令由玩家执行）
+                    player.spoofChatInput("/" + s);
+                    continue;
+                }
+                if (s.startsWith("litebans")) {
+                    server.getCommandManager().executeAsync(commandSource, s);
+                } else {
+                    commandSource.sendMessage(Utils.coloredMessage("&c因为在控制台执行指令，跳过执行惩罚：" + s));
+                }
             }
         }
         commandSource.sendMessage(Utils.coloredMessage("&a连带处罚执行完成"));
@@ -128,7 +137,7 @@ public class LiteBansListener extends Events.Listener {
 
     private @Nullable CommandSource getCommandSource(String executorUUID) {
         CommandSource source;
-        if (executorUUID != null && !executorUUID.equals("[Console]")) {
+        if (executorUUID != null && !executorUUID.toLowerCase().contains("[console]")) {
             // 玩家执行的命令
             Optional<Player> player = plugin.getServer().getPlayer(UUID.fromString(executorUUID));
             if (player.isPresent()) {
