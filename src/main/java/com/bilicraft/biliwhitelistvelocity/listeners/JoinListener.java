@@ -4,16 +4,16 @@ import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.velocitypowered.api.event.PostOrder;
+import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.connection.PreLoginEvent;
+import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.TextComponent;
-import org.enginehub.squirrelid.Profile;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class JoinListener {
@@ -26,15 +26,18 @@ public class JoinListener {
     }
 
     @Subscribe(order = PostOrder.EARLY)
-    public void onPlayerJoin(PreLoginEvent event) {
-        UUID playerUniqueId = event.getUniqueId();
-        String playerName = event.getUsername();
+    public void onPlayerJoin(LoginEvent event) {
+        Player player = event.getPlayer();
+        UUID playerUniqueId = player.getUniqueId();
+        String playerName = player.getUsername();
+        InetSocketAddress ip = player.getRemoteAddress();
 
-        if (playerUniqueId == null) {
-            TextComponent kickMessage = Utils.coloredMessage((String) messages.get("messages.no-licensed-account"));
-            event.setResult(PreLoginEvent.PreLoginComponentResult.denied(kickMessage));
+        if (!player.isOnlineMode()) {
+            TextComponent kickMessage = Utils.coloredMessage((String) messages.get("no-licensed-account"));
+            event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} 不是正版 Minecraft 账号，已拒绝", playerName);
-            return;
+        } else if (ip != null && ip.getAddress() != null) {
+            plugin.getIpRecordManager().addRecord(playerName, playerUniqueId, ip.getAddress().getHostAddress());
         }
     }
 

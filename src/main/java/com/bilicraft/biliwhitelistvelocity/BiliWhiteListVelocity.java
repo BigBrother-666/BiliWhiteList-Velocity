@@ -1,12 +1,14 @@
 package com.bilicraft.biliwhitelistvelocity;
 
 import com.bilicraft.biliwhitelistvelocity.Database.BiliDatabase;
+import com.bilicraft.biliwhitelistvelocity.Database.IpRecordDatabase;
 import com.bilicraft.biliwhitelistvelocity.commands.*;
 import com.bilicraft.biliwhitelistvelocity.common.HttpRepositoryServicePatched;
 import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.bilicraft.biliwhitelistvelocity.listeners.JoinListener;
 import com.bilicraft.biliwhitelistvelocity.listeners.LiteBansListener;
+import com.bilicraft.biliwhitelistvelocity.manager.IpRecordManager;
 import com.bilicraft.biliwhitelistvelocity.manager.WhiteListManager;
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.*;
@@ -48,6 +50,8 @@ public class BiliWhiteListVelocity implements SimpleCommand {
     private ProfileCache cache;
     private WhiteListManager whiteListManager;
     private BiliDatabase databaseManager;
+    private IpRecordDatabase ipRecordDatabase;
+    private IpRecordManager ipRecordManager;
     private LiteBansListener liteBansListener;
     private JoinListener joinListener;
 
@@ -103,6 +107,8 @@ public class BiliWhiteListVelocity implements SimpleCommand {
                 (Integer) mysql.get("port"),
                 (Boolean) mysql.get("usessl"));
         this.whiteListManager = new WhiteListManager(this);
+        this.ipRecordDatabase = new IpRecordDatabase(this);
+        this.ipRecordManager = new IpRecordManager(this);
     }
 
     /**

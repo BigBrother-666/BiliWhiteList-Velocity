@@ -14,7 +14,7 @@ public class Utils {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(msg);
     }
 
-    public static boolean boolFromInt(int i){
+    public static boolean boolFromInt(int i) {
         return i != 0;
     }
 
@@ -28,7 +28,7 @@ public class Utils {
         BiliWhiteListVelocity.instance.getServer().sendMessage(coloredMessage(content));
     }
 
-    public static List<String> getAllPlayerName(){
+    public static List<String> getAllPlayerName() {
         Collection<Player> allPlayers = BiliWhiteListVelocity.instance.getServer().getAllPlayers();
         List<String> allPlayerName = new ArrayList<>();
         for (Player player : allPlayers) {
