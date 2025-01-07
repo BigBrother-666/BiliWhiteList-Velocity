@@ -26,3 +26,14 @@ joint-liability:
   # 邀请人白名单（17th大多审核员使用bcinvite，防止审核员被自动warn），填写不带分隔符的uuid
   inviter-whitelist:
     - 785b463fdd534307bcdb9a350e0cdc3d  # Rus_BigBrother
+
+# ip检测相关
+associated-account:
+  # 数据库记录ip属地
+  db-record-loc: true
+  # 获取ip属地的api
+  loc-api: https://api.ip.sb/geoip/{ip}
+  # 封禁玩家小号上线提醒
+  detect-banned: true
+  # 检测小号时，只使用ip还是ip+属地综合判断
+  ip-only: false

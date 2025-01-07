@@ -14,6 +14,7 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.command.*;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.PluginManager;
@@ -44,7 +45,6 @@ import java.util.Map;
 )
 @Getter
 public class BiliWhiteListVelocity implements SimpleCommand {
-    public static final String PREFIX = "BiliWhiteList";
     public static BiliWhiteListVelocity instance;
     private CacheForwardingService resolver;
     private ProfileCache cache;
@@ -81,6 +81,12 @@ public class BiliWhiteListVelocity implements SimpleCommand {
         registerCommands();
     }
 
+    @Subscribe
+    public void onProxyShutdown(ProxyShutdownEvent event) {
+        this.databaseManager.getDs().close();
+        this.ipRecordDatabase.getDs().close();
+    }
+
     private void registerListener() {
         joinListener = new JoinListener(this);
         server.getEventManager().register(this, joinListener);
@@ -97,15 +103,14 @@ public class BiliWhiteListVelocity implements SimpleCommand {
         }
 
         this.resolver = new CacheForwardingService(HttpRepositoryServicePatched.forMinecraft(), cache);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> mysql = (Map<String, Object>) Config.getConfig().get("mysql");
+        Map<String, Object> mysql = Config.getMysqlConf();
         this.databaseManager = new BiliDatabase(this,
-                (String) mysql.get("host"),
-                (String) mysql.get("user"),
-                (String) mysql.get("pass"),
-                (String) mysql.get("database"),
-                (Integer) mysql.get("port"),
-                (Boolean) mysql.get("usessl"));
+                (String) mysql.getOrDefault("host", "localhost"),
+                (String) mysql.getOrDefault("user", "mc"),
+                (String) mysql.getOrDefault("pass", "mc"),
+                (String) mysql.getOrDefault("database", "mc"),
+                (Integer) mysql.getOrDefault("port", 3306),
+                (Boolean) mysql.getOrDefault("usessl", false));
         this.whiteListManager = new WhiteListManager(this);
         this.ipRecordDatabase = new IpRecordDatabase(this);
         this.ipRecordManager = new IpRecordManager(this);
@@ -157,6 +162,13 @@ public class BiliWhiteListVelocity implements SimpleCommand {
                 .plugin(this)
                 .build();
         commandManager.register(commandMeta6, this);
+
+        //bciptool
+        CommandMeta commandMeta7 = commandManager.metaBuilder("bciptool")
+                .plugin(this)
+                .build();
+        SimpleCommand ipToolsCommand = new IpToolsCommand(this);
+        commandManager.register(commandMeta7, ipToolsCommand);
     }
 
     /**
@@ -166,6 +178,7 @@ public class BiliWhiteListVelocity implements SimpleCommand {
     public void execute(Invocation invocation) {
         // 关闭数据源
         this.databaseManager.getDs().close();
+        this.ipRecordDatabase.getDs().close();
         // 取消监听器
         server.getEventManager().unregisterListener(this, joinListener);
         Events.get().unregister(liteBansListener);

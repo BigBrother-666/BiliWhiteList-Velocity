@@ -3,11 +3,13 @@ package com.bilicraft.biliwhitelistvelocity.Database;
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.io.File;
 import java.sql.Connection;
 
+@Getter
 public class IpRecordDatabase {
     private final HikariDataSource ds;
 
@@ -16,6 +18,7 @@ public class IpRecordDatabase {
         config.setJdbcUrl("jdbc:sqlite:" + plugin.getDataDirectory().toString() + File.separator + "ip_record.db");
         config.setMaximumPoolSize(10);
         config.setConnectionTestQuery("SELECT 1");
+        config.setPoolName("IpRecordPool");
         this.ds = new HikariDataSource(config);
     }
 

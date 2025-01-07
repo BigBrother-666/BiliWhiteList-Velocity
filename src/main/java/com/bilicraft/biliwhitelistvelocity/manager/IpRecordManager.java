@@ -1,38 +1,30 @@
 package com.bilicraft.biliwhitelistvelocity.manager;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
-import com.maxmind.geoip2.DatabaseReader;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.record.Country;
+import com.bilicraft.biliwhitelistvelocity.config.Config;
+import com.google.gson.Gson;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IpRecordManager {
     private final BiliWhiteListVelocity plugin;
     private final String recordTableName = "ip_record";
-    private File database;
+    private final Map<String, String> locCache;
 
     public IpRecordManager(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
-
-        // 加载ip属地数据库
-        File directory = new File(plugin.getDataDirectory().toString());
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile() && file.getName().endsWith(".mmdb")) {
-                    plugin.getLogger().info("加载mmdb文件：{}", file.getAbsolutePath());
-                    this.database = file;
-                    break;
-                }
-            }
-        }
+        this.locCache = new ConcurrentHashMap<>();
 
         // 创建记录表
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); Statement statement = connection.createStatement()) {
@@ -53,38 +45,215 @@ public class IpRecordManager {
     }
 
     public void addRecord(String playerName, UUID uuid, String ip) {
-        try (Connection connection = plugin.getIpRecordDatabase().getConnection()) {
-            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `" + recordTableName + "` (`login_time`, `player_uuid`, `player_name`, `ip`, `ip_location`) VALUES (?, ?, ?, ?, ?)");
-            preparedStatement.setObject(1, LocalDateTime.now());
-            preparedStatement.setString(2, uuid.toString());
-            preparedStatement.setString(3, playerName);
-            preparedStatement.setString(4, ip);
-            preparedStatement.setString(5, getIpAddress(ip));
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getLogger().error(e.toString());
-        }
+        plugin.getServer().getScheduler().buildTask(plugin, () -> {
+            try (Connection connection = plugin.getIpRecordDatabase().getConnection()) {
+                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `" + recordTableName + "` (`login_time`, `player_uuid`, `player_name`, `ip`, `ip_location`) VALUES (?, ?, ?, ?, ?)");
+                preparedStatement.setObject(1, LocalDateTime.now());
+                preparedStatement.setString(2, uuid.toString());
+                preparedStatement.setString(3, playerName);
+                preparedStatement.setString(4, ip);
+                preparedStatement.setString(5, getIpAddress(ip));
+                preparedStatement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().error(e.toString());
+            }
+        }).schedule();
     }
 
     /**
      * @param ip ip地址
      * @return ip归属地
      */
+    @Nullable
     public String getIpAddress(String ip) {
-        if (database == null) {
-            return "未知";
+        if (!(Boolean) Config.getAssociatedAccountConf().getOrDefault("db-record-loc", true)) {
+            return null;
         }
-        try (DatabaseReader reader = new DatabaseReader.Builder(database).build()) {
-            InetAddress ipAddress = InetAddress.getByName(ip);
-            CityResponse response = reader.city(ipAddress);
-            Country country = response.getCountry();
-            return country.getNames().get("zh-CN") != null ? country.getNames().get("zh-CN") : country.getName();
-        } catch (IOException e) {
-            BiliWhiteListVelocity.instance.getLogger().error(e.toString());
-            return "未知";
-        } catch (GeoIp2Exception e) {
-            BiliWhiteListVelocity.instance.getLogger().warn(e.toString());
-            return "未知";
+        if (locCache.containsKey(ip)) {
+            return locCache.get(ip);
         }
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
+                    .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            Gson gson = new Gson();
+            LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
+            String loc = "%s-%s-%s".formatted(respJson.country, respJson.region, respJson.city);
+            locCache.put(ip, loc);
+            plugin.getLogger().info("loc查询结果：{}", loc);
+            return loc;
+        } catch (Exception e) {
+            plugin.getLogger().warn(e.toString());
+            return "未知-未知-未知";
+        }
+    }
+
+    /**
+     * 通过玩家名字查询玩家 UUID
+     *
+     * @param playerName 玩家名
+     * @return 玩家 UUID
+     */
+    @Nullable
+    public String getPlayerUuidByName(String playerName) {
+        String sql = "SELECT DISTINCT player_uuid FROM ip_record WHERE player_name = ?";
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerName);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("player_uuid");
+            } else {
+                return null;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+            return null;
+        }
+    }
+
+    /**
+     * 通过 UUID 查询曾用名
+     *
+     * @param playerUuid 玩家uuid
+     * @return 曾用名列表
+     */
+    public List<String> getPlayerHistoryNamesByUuid(String playerUuid) {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT DISTINCT player_name FROM ip_record WHERE player_uuid = ? ORDER BY login_time";
+
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                names.add(rs.getString("player_name"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return names;
+    }
+
+    /**
+     * 通过玩家名查找曾用名
+     *
+     * @param playerName 玩家名
+     * @return 曾用名列表
+     */
+    public List<String> getPlayerHistoryNamesByName(String playerName) {
+        String playerUuid = getPlayerUuidByName(playerName);
+        if (playerUuid == null) {
+            return new ArrayList<>();
+        }
+        return getPlayerHistoryNamesByUuid(playerUuid);
+    }
+
+    /**
+     * 查找和某玩家使用相同ip登陆过的玩家
+     *
+     * @param playerName 玩家名
+     * @return 使用相同ip登录的玩家列表
+     */
+    public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerName) {
+        Map<String, ArrayList<SameIpStats>> sameIpPlayers = new HashMap<>();
+        String playerUuid = getPlayerUuidByName(playerName);
+        String sql = "SELECT player_name, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? GROUP BY ip";
+        if (playerUuid == null) {
+            return sameIpPlayers;
+        }
+
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid);
+            stmt.setString(2, playerUuid);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString("player_name");
+                if (sameIpPlayers.containsKey(name)) {
+                    sameIpPlayers.get(name).add(new SameIpStats(rs.getString("ip_location"), rs.getString("ip"), rs.getInt("count")));
+                } else {
+                    ArrayList<SameIpStats> temp = new ArrayList<>();
+                    temp.add(new SameIpStats(rs.getString("ip_location"), rs.getString("ip"), rs.getInt("count")));
+                    sameIpPlayers.put(name, temp);
+                }
+                Collections.sort(sameIpPlayers.get(name));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return sameIpPlayers;
+    }
+
+    /**
+     * 统计某玩家的登录ip属地占比
+     *
+     * @param playerName 玩家名
+     * @return ip属地统计
+     */
+    public List<IpLocationStats> getPlayerIpLocationRatio(String playerName) {
+        String sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? GROUP BY ip_location";
+        List<IpLocationStats> locationStats = new ArrayList<>();
+        String playerUuid = getPlayerUuidByName(playerName);
+        if (playerUuid == null) {
+            return locationStats;
+        }
+
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String ipLocation = rs.getString("ip_location");
+                int count = rs.getInt("count");
+                locationStats.add(new IpLocationStats(ipLocation, count));
+            }
+
+            Collections.sort(locationStats);
+            return locationStats;
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return locationStats;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class SameIpStats implements Comparable<SameIpStats> {
+        private String ipLocation;
+        private String ip;
+        private int count;
+
+        @Override
+        public int compareTo(@NotNull IpRecordManager.SameIpStats o) {
+            return Integer.compare(o.count, this.count);
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class IpLocationStats implements Comparable<IpLocationStats> {
+        private String ipLocation;
+        private int count;
+
+        @Override
+        public int compareTo(@NotNull IpRecordManager.IpLocationStats o) {
+            return Integer.compare(o.count, this.count);
+        }
+
+        public static int getTotalLogin(List<IpLocationStats> data) {
+            int sum = 0;
+            for (IpLocationStats stats : data) {
+                sum += stats.count;
+            }
+            return sum;
+        }
+    }
+
+    @Data
+    public static class LocJsonResp {
+        private String country = "未知";
+        private String region = "未知";
+        private String city = "未知";
     }
 }
