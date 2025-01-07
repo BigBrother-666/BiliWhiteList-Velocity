@@ -18,12 +18,9 @@ import java.util.*;
 
 public class LiteBansListener extends Events.Listener {
     private final BiliWhiteListVelocity plugin;
-    private final Map<String, Object> conf;
 
     public LiteBansListener(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
-        // noinspection unchecked
-        conf = (Map<String, Object>) Config.getConfig().get("joint-liability");
     }
 
     @Override
@@ -31,10 +28,10 @@ public class LiteBansListener extends Events.Listener {
         switch (entry.getType()) {
             case "ban":
                 // This is a ban event.
-                if (!(Boolean) conf.get("enable")) {
+                if (!(Boolean) Config.getJointLiabilityConf().getOrDefault("enable", false)) {
                     break;
                 }
-                long configDuration = (int) conf.get("invitee-ban-duration");
+                long configDuration = (int) Config.getJointLiabilityConf().getOrDefault("invitee-ban-duration", -1);
                 if (configDuration < 0 && entry.isPermanent() || configDuration >= 0 && entry.getDuration() >= configDuration) {
                     String[] ret = getInviter(entry.getUuid(), entry.getExecutorUUID());
                     if (ret == null) {
@@ -71,7 +68,7 @@ public class LiteBansListener extends Events.Listener {
         }
         // 检查inviter是否在排除列表中
         @SuppressWarnings("unchecked")
-        List<String> whitelist = (List<String>) conf.getOrDefault("inviter-whitelist", Collections.emptyList());
+        List<String> whitelist = (List<String>) Config.getJointLiabilityConf().getOrDefault("inviter-whitelist", Collections.emptyList());
         if (whitelist != null && whitelist.contains(inviterUuid)) {
             // 不处罚
             commandSource.sendMessage(Utils.coloredMessage("&e " + inviterName + " &a在连带处罚白名单中，不进行处罚"));
@@ -80,7 +77,7 @@ public class LiteBansListener extends Events.Listener {
 
         // 执行处罚指令
         @SuppressWarnings("unchecked")
-        List<String> cmd = (List<String>) conf.getOrDefault("inviter-punishment", Collections.emptyList());
+        List<String> cmd = (List<String>) Config.getJointLiabilityConf().getOrDefault("inviter-punishment", Collections.emptyList());
         if (cmd != null) {
             ProxyServer server = plugin.getServer();
             for (String s : cmd) {

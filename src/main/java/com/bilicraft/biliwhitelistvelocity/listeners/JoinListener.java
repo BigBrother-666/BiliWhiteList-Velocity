@@ -13,16 +13,13 @@ import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.TextComponent;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.UUID;
 
 public class JoinListener {
     private final BiliWhiteListVelocity plugin;
-    private final Map<String, Object> messages;
 
     public JoinListener(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
-        this.messages = (Map<String, Object>) Config.getConfig().get("messages");
     }
 
     @Subscribe(order = PostOrder.EARLY)
@@ -33,7 +30,7 @@ public class JoinListener {
         InetSocketAddress ip = player.getRemoteAddress();
 
         if (!player.isOnlineMode()) {
-            TextComponent kickMessage = Utils.coloredMessage((String) messages.get("no-licensed-account"));
+            TextComponent kickMessage = Utils.coloredMessage((String) Config.getMessagesConf().getOrDefault("no-licensed-account", "请使用正版 Minecraft 账号登录"));
             event.setResult(ResultedEvent.ComponentResult.denied(kickMessage));
             plugin.getLogger().info("玩家 {} 不是正版 Minecraft 账号，已拒绝", playerName);
         } else if (ip != null && ip.getAddress() != null) {
@@ -62,9 +59,9 @@ public class JoinListener {
         if (status != WhiteListManager.RecordStatus.WHITELISTED) {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
             if (previousServerName != null) {
-                event.getPlayer().sendMessage(Utils.coloredMessage(((String) messages.get("no-whitelist-switch")).replace("{server}", targetServerName)));
+                event.getPlayer().sendMessage(Utils.coloredMessage(((String) Config.getMessagesConf().getOrDefault("no-whitelist-switch", "抱歉，您没有白名单，无法连接到 {server} 服务器，请先申请")).replace("{server}", targetServerName)));
             } else {
-                event.getPlayer().disconnect(Utils.coloredMessage((String) messages.get("no-whitelist")));
+                event.getPlayer().disconnect(Utils.coloredMessage((String) Config.getMessagesConf().getOrDefault("no-whitelist", "抱歉，您没有此服务器的白名单，请先申请")));
                 plugin.getLogger().info("玩家 {} # {} 没有白名单，已拒绝", username, uniqueId);
             }
         } else {

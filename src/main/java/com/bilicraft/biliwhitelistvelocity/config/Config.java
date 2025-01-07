@@ -13,7 +13,13 @@ import org.yaml.snakeyaml.Yaml;
 
 public class Config {
     @Getter
-    private static Map<String, Object> config;
+    private static Map<String, Object> jointLiabilityConf;
+    @Getter
+    private static Map<String, Object> messagesConf;
+    @Getter
+    private static Map<String, Object> mysqlConf;
+    @Getter
+    private static Map<String, Object> associatedAccountConf;
 
     /**
      * 加载配置文件
@@ -38,7 +44,15 @@ public class Config {
         }
         // 加载配置到内存
         try (InputStream inputStream = new FileInputStream(configFile.toFile())) {
-            config = yaml.load(inputStream);
+            Map<String, Object> config = yaml.load(inputStream);
+            // noinspection unchecked
+            jointLiabilityConf = (Map<String, Object>) config.get("joint-liability");
+            // noinspection unchecked
+            messagesConf = (Map<String, Object>) config.get("messages");
+            // noinspection unchecked
+            mysqlConf = (Map<String, Object>) config.get("mysql");
+            // noinspection unchecked
+            associatedAccountConf = (Map<String, Object>) config.get("associated-account");
         } catch (Exception e) {
             biliWhiteList.getLogger().error("config.yml加载失败");
             biliWhiteList.getLogger().error(e.getMessage());
