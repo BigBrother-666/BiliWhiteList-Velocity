@@ -14,6 +14,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,11 +49,11 @@ public class IpRecordManager {
         plugin.getServer().getScheduler().buildTask(plugin, () -> {
             try (Connection connection = plugin.getIpRecordDatabase().getConnection()) {
                 PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `" + recordTableName + "` (`login_time`, `player_uuid`, `player_name`, `ip`, `ip_location`) VALUES (?, ?, ?, ?, ?)");
-                preparedStatement.setObject(1, LocalDateTime.now());
+                preparedStatement.setString(1, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                 preparedStatement.setString(2, uuid.toString());
                 preparedStatement.setString(3, playerName);
                 preparedStatement.setString(4, ip);
-                preparedStatement.setString(5, getIpAddress(ip));
+                preparedStatement.setString(5, getIpLocation(ip));
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().error(e.toString());
@@ -65,7 +66,7 @@ public class IpRecordManager {
      * @return ip归属地
      */
     @Nullable
-    public String getIpAddress(String ip) {
+    private String getIpLocation(String ip) {
         if (!(Boolean) Config.getAssociatedAccountConf().getOrDefault("db-record-loc", true)) {
             return null;
         }
@@ -98,7 +99,7 @@ public class IpRecordManager {
      * @return 玩家 UUID
      */
     @Nullable
-    public String getPlayerUuidByName(String playerName) {
+    private String getPlayerUuidByName(String playerName) {
         String sql = "SELECT DISTINCT player_uuid FROM ip_record WHERE player_name = ?";
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName);
@@ -120,7 +121,7 @@ public class IpRecordManager {
      * @param playerUuid 玩家uuid
      * @return 曾用名列表
      */
-    public List<String> getPlayerHistoryNamesByUuid(String playerUuid) {
+    private List<String> getPlayerHistoryNamesByUuid(String playerUuid) {
         List<String> names = new ArrayList<>();
         String sql = "SELECT DISTINCT player_name FROM ip_record WHERE player_uuid = ? ORDER BY login_time";
 
@@ -134,6 +135,34 @@ public class IpRecordManager {
             plugin.getLogger().error(e.toString());
         }
         return names;
+    }
+
+    private IpLocationInfo getPlayerIplocationinfoById(String playerUuid, String ipLoc) {
+        String sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? GROUP BY ip ORDER BY count";
+        IpLocationInfo info = new IpLocationInfo(new LinkedHashMap<>(), "UnKnown", "UnKnown");
+
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid);
+            stmt.setString(2, ipLoc);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                info.getIps().put(rs.getString("ip"), rs.getInt("count"));
+                // 查询该ip的登录时间
+                sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ?";
+                PreparedStatement stmt2 = connection.prepareStatement(sql);
+                stmt2.setString(1, playerUuid);
+                stmt2.setString(2, rs.getString("ip"));
+                ResultSet rs2 = stmt2.executeQuery();
+                if (rs2.next()) {
+                    info.setFirstLoginTIme(rs2.getString("first_login_time"));
+                    info.setLastLoginTIme(rs2.getString("last_login_time"));
+                }
+                stmt2.close();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return info;
     }
 
     /**
@@ -206,7 +235,7 @@ public class IpRecordManager {
             while (rs.next()) {
                 String ipLocation = rs.getString("ip_location");
                 int count = rs.getInt("count");
-                locationStats.add(new IpLocationStats(ipLocation, count));
+                locationStats.add(new IpLocationStats(ipLocation, count, getPlayerIplocationinfoById(playerUuid, ipLocation)));
             }
 
             Collections.sort(locationStats);
@@ -217,6 +246,9 @@ public class IpRecordManager {
         return locationStats;
     }
 
+    /**
+     * dupeip指令使用
+     */
     @Data
     @AllArgsConstructor
     public static class SameIpStats implements Comparable<SameIpStats> {
@@ -230,11 +262,15 @@ public class IpRecordManager {
         }
     }
 
+    /**
+     * iphistory指令使用
+     */
     @Data
     @AllArgsConstructor
     public static class IpLocationStats implements Comparable<IpLocationStats> {
         private String ipLocation;
         private int count;
+        private IpLocationInfo info;
 
         @Override
         public int compareTo(@NotNull IpRecordManager.IpLocationStats o) {
@@ -248,6 +284,14 @@ public class IpRecordManager {
             }
             return sum;
         }
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class IpLocationInfo {
+        private LinkedHashMap<String, Integer> ips;
+        private String firstLoginTIme;
+        private String lastLoginTIme;
     }
 
     @Data
