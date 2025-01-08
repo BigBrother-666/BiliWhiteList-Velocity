@@ -45,11 +45,13 @@ public class IpToolsCommand implements SimpleCommand {
                     for (Map.Entry<String, ArrayList<IpRecordManager.SameIpStats>> entry : players.entrySet()) {
                         String historyNamesStr = getHistoryNamesStr(entry.getKey());
                         Component hoverText = Utils.coloredMessage("&a%s 和 %s 使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, args[1]));
+                        int totalCount = 0;
                         for (IpRecordManager.SameIpStats sameIpStats : entry.getValue()) {
                             hoverText = hoverText.append(Utils.coloredMessage("&6%s (%s) &f| &6%d次\n".formatted(sameIpStats.getIp(), sameIpStats.getIpLocation(), sameIpStats.getCount())));
+                            totalCount += sameIpStats.getCount();
                         }
 
-                        Component temp = Component.text(historyNamesStr + "\n", NamedTextColor.GOLD);
+                        Component temp = Utils.coloredMessage("&6%s &f| &6使用相同ip登录次数：%d\n".formatted(historyNamesStr, totalCount));
                         temp = temp.hoverEvent(HoverEvent.showText(hoverText));
                         dupeipOutput = dupeipOutput.append(temp);
                     }
@@ -70,9 +72,9 @@ public class IpToolsCommand implements SimpleCommand {
                         // 生成悬浮文字
                         Component hoverText = Utils.coloredMessage("&a玩家 %s 登录属地 %s 的ip详情：\n&f-------------------------------------------\n".formatted(args[1], ipLocationStats.getIpLocation()));
                         hoverText = hoverText.append(Utils.coloredMessage("&l     &6ip     &f| &6使用次数 &f|     &6第一次登录时间   &f|      &6最后登录时间  \n"));
-                        IpRecordManager.IpLocationInfo info = ipLocationStats.getInfo();
-                        for (Map.Entry<String, Integer> entry : info.getIps().entrySet()) {
-                            hoverText = hoverText.append(Utils.coloredMessage("&6%s &f| &6%d &f| &6%s &f| &6%s\n".formatted(entry.getKey(), entry.getValue(), info.getFirstLoginTIme(), info.getLastLoginTIme())));
+                        List<IpRecordManager.IpLocationInfo> info = ipLocationStats.getInfo();
+                        for (IpRecordManager.IpLocationInfo ipLocationInfo : info) {
+                            hoverText = hoverText.append(Utils.coloredMessage("&6%s &f| &6%d &f| &6%s &f| &6%s\n".formatted(ipLocationInfo.getIp(), ipLocationInfo.getCount(), ipLocationInfo.getFirstLoginTIme(), ipLocationInfo.getLastLoginTIme())));
                         }
 
                         double ratio = (double) ipLocationStats.getCount() / total * 100;
@@ -87,11 +89,18 @@ public class IpToolsCommand implements SimpleCommand {
         }).schedule();
     }
 
-    private @NotNull String getHistoryNamesStr(String playerName) {
-        List<String> playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByName(playerName);
+    private @NotNull String getHistoryNamesStr(String playerNameOrUuid) {
+        // uuid
+        List<String> playerHistoryNames;
+        if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
+            playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByUuid(playerNameOrUuid);
+        } else {
+            playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByName(playerNameOrUuid);
+        }
+
         String historyNamesStr;
-        if (playerHistoryNames.size() <= 1) {
-            historyNamesStr = playerName;
+        if (playerHistoryNames.size() == 1) {
+            historyNamesStr = playerHistoryNames.getFirst();
         } else {
             String newName = playerHistoryNames.getLast();
             playerHistoryNames.removeLast();
