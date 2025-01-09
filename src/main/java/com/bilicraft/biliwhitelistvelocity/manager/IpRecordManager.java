@@ -108,7 +108,7 @@ public class IpRecordManager {
      * @return 玩家 UUID
      */
     @Nullable
-    private String getPlayerUuidByName(String playerName) {
+    public String getPlayerUuidByName(String playerName) {
         String sql = "SELECT DISTINCT player_uuid FROM ip_record WHERE player_name = ?";
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName);
@@ -202,7 +202,7 @@ public class IpRecordManager {
         }
         String sql;
         if (range > 0) {
-            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? AND login_time >= DATETIME('now', '- ? days') GROUP BY ip, player_uuid";
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(range);
         } else {
             sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? GROUP BY ip, player_uuid";
         }
@@ -213,9 +213,6 @@ public class IpRecordManager {
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerUuid);
             stmt.setString(2, playerUuid);
-            if (range > 0) {
-                stmt.setInt(3, range);
-            }
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String uuid = rs.getString("player_uuid");
@@ -276,7 +273,9 @@ public class IpRecordManager {
         try (PreparedStatement st = Database.get().prepareStatement(query)) {
             st.setLong(1, Instant.now().toEpochMilli());
             ResultSet rs = st.executeQuery();
-            bannedPlayers.add(rs.getString("uuid"));
+            while (rs.next()) {
+                bannedPlayers.add(rs.getString("uuid"));
+            }
         } catch (SQLException e) {
             plugin.getLogger().error(e.toString());
         }
