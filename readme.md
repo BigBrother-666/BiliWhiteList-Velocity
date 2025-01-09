@@ -32,7 +32,7 @@
 * `/bcinvitelist <player>` - 查询指定玩家邀请了谁
 * `/bcinvite <player>` - 邀请玩家
 * `/bcreload <player>` - 重载配置文件
-* `/bciptool dupeip <player>` - 查询某玩家关联的账号
+* `/bciptool dupeip [player] [--range <days>]` - 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，`--range`是可选参数，表示根据指定天数内的log查询
 * `/bciptool iphistory <player>` - 查询某玩家的所有登录ip和属地信息
 
 ## 权限
