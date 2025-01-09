@@ -5,6 +5,7 @@ import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
+import litebans.api.Database;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -187,13 +189,23 @@ public class IpRecordManager {
     /**
      * 查找和某玩家使用相同ip登陆过的玩家
      *
-     * @param playerName 玩家名
+     * @param playerNameOrUuid 玩家名或uuid
      * @return 使用相同ip登录的玩家列表
      */
-    public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerName) {
+    public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerNameOrUuid, int range) {
         Map<String, ArrayList<SameIpStats>> sameIpPlayers = new HashMap<>();
-        String playerUuid = getPlayerUuidByName(playerName);
-        String sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? GROUP BY ip, player_uuid";
+        String playerUuid;
+        if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
+            playerUuid = playerNameOrUuid;
+        } else {
+            playerUuid = getPlayerUuidByName(playerNameOrUuid);
+        }
+        String sql;
+        if (range > 0) {
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? AND login_time >= DATETIME('now', '- ? days') GROUP BY ip, player_uuid";
+        } else {
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? GROUP BY ip, player_uuid";
+        }
         if (playerUuid == null) {
             return sameIpPlayers;
         }
@@ -201,6 +213,9 @@ public class IpRecordManager {
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerUuid);
             stmt.setString(2, playerUuid);
+            if (range > 0) {
+                stmt.setInt(3, range);
+            }
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String uuid = rs.getString("player_uuid");
@@ -249,6 +264,24 @@ public class IpRecordManager {
             plugin.getLogger().error(e.toString());
         }
         return locationStats;
+    }
+
+    /**
+     * 获取当前所有封禁玩家
+     * @return 封禁玩家uuid列表
+     */
+    public List<String> getBannedPlayersUuid() {
+        List<String> bannedPlayers = new ArrayList<>();
+        String query = "SELECT DISTINCT uuid FROM {bans} WHERE active=1 AND (until < 1 OR until > ?)";
+        try (PreparedStatement st = Database.get().prepareStatement(query)) {
+            st.setLong(1, Instant.now().toEpochMilli());
+            ResultSet rs = st.executeQuery();
+            bannedPlayers.add(rs.getString("uuid"));
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+
+        return bannedPlayers;
     }
 
     /**

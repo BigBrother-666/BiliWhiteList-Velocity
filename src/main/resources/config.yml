@@ -33,7 +33,3 @@ associated-account:
   db-record-loc: true
   # 获取ip属地的api
   loc-api: https://api.ip.sb/geoip/{ip}
-  # 封禁玩家小号上线提醒
-  detect-banned: true
-  # 检测小号时，只使用ip还是ip+属地综合判断
-  ip-only: false

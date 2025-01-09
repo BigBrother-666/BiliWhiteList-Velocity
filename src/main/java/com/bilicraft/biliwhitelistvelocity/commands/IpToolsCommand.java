@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +27,8 @@ public class IpToolsCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if (args.length < 2) {
-            source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip <玩家ID> : 查询和某玩家使用相同ip登录过的玩家。注：该指令列出的玩家不一定是玩家的小号，需要综合ip属地等判断。\n" +
+        if (args.length < 1) {
+            source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>] : 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n" +
                     "&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
         }
 
@@ -35,29 +36,39 @@ public class IpToolsCommand implements SimpleCommand {
             switch (args[0]) {
                 case "dupeip":
                     source.sendMessage(Utils.coloredMessage("&b正在查询，请稍后..."));
-                    Component dupeipOutput = Component.text("和%s使用相同ip登录过的玩家（指针移动到玩家名上查看相同ip详情）：\n".formatted(getHistoryNamesStr(args[1])), NamedTextColor.GREEN);
-                    Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(args[1]);
-                    if (players.isEmpty()) {
-                        source.sendMessage(Component.text("没有查询到和%s使用相同ip登录过的玩家".formatted(getHistoryNamesStr(args[1])), NamedTextColor.RED));
-                        return;
-                    }
-
-                    for (Map.Entry<String, ArrayList<IpRecordManager.SameIpStats>> entry : players.entrySet()) {
-                        String historyNamesStr = getHistoryNamesStr(entry.getKey());
-                        Component hoverText = Utils.coloredMessage("&a%s 和 %s 使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, args[1]));
-                        int totalCount = 0;
-                        for (IpRecordManager.SameIpStats sameIpStats : entry.getValue()) {
-                            hoverText = hoverText.append(Utils.coloredMessage("&6%s (%s) &f| &6%d次\n".formatted(sameIpStats.getIp(), sameIpStats.getIpLocation(), sameIpStats.getCount())));
-                            totalCount += sameIpStats.getCount();
+                    String arg = findArg("--range", args);
+                    int range = -1;
+                    if (arg != null) {
+                        try {
+                            range = Integer.parseInt(arg);
+                            if (range <= 0) {
+                                source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
+                                return;
+                            }
+                        } catch (NumberFormatException e) {
+                            source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
+                            return;
                         }
-
-                        Component temp = Utils.coloredMessage("&6%s &f| &6使用相同ip登录次数：%d\n".formatted(historyNamesStr, totalCount));
-                        temp = temp.hoverEvent(HoverEvent.showText(hoverText));
-                        dupeipOutput = dupeipOutput.append(temp);
                     }
-                    source.sendMessage(dupeipOutput);
+                    if (args.length == 1 || args.length == 3) {
+                        // 查询所有封禁玩家
+                        for (String uuid : plugin.getIpRecordManager().getBannedPlayersUuid()) {
+                            Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(uuid, range);
+                            subcommandDupeip(args, source, players);
+                        }
+                    } else if (!args[1].trim().isEmpty()) {
+                        // 查询单个玩家
+                        Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(args[1], range);
+                        subcommandDupeip(args, source, players);
+                    } else {
+                        source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>] : 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n"));
+                    }
                     break;
                 case "iphistory":
+                    if (args.length == 1 || args[1].trim().isEmpty()) {
+                        source.sendMessage(Utils.coloredMessage("&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
+                        return;
+                    }
                     source.sendMessage(Utils.coloredMessage("&b正在查询，请稍后..."));
                     Component iphistoryOutput = Component.text("%s的登录信息（指针移动到各行可查看详情）：\n".formatted(getHistoryNamesStr(args[1])), NamedTextColor.GREEN);
                     List<IpRecordManager.IpLocationStats> playerIpLocationRatio = plugin.getIpRecordManager().getPlayerIpLocationRatio(args[1]);
@@ -83,10 +94,43 @@ public class IpToolsCommand implements SimpleCommand {
                     source.sendMessage(iphistoryOutput);
                     break;
                 default:
-                    source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip <玩家ID> : 查询和某玩家使用相同ip登录过的玩家。注：该指令列出的玩家不一定是玩家的小号，需要综合ip属地等判断。\n" +
+                    source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>]: 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n" +
                             "&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
             }
         }).schedule();
+    }
+
+    @Nullable
+    private String findArg(String name, String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(name) && args.length > i + 1 && !args[i + 1].trim().isEmpty()) {
+                return args[i + 1];
+            }
+        }
+        return null;
+    }
+
+    private void subcommandDupeip(String[] args, CommandSource source, Map<String, ArrayList<IpRecordManager.SameIpStats>> players) {
+        Component dupeipOutput = Component.text("和%s使用相同ip登录过的玩家（指针移动到玩家名上查看相同ip详情）：\n".formatted(getHistoryNamesStr(args[1])), NamedTextColor.GREEN);
+        if (players.isEmpty()) {
+            source.sendMessage(Component.text("没有查询到和%s使用相同ip登录过的玩家".formatted(getHistoryNamesStr(args[1])), NamedTextColor.RED));
+            return;
+        }
+
+        for (Map.Entry<String, ArrayList<IpRecordManager.SameIpStats>> entry : players.entrySet()) {
+            String historyNamesStr = getHistoryNamesStr(entry.getKey());
+            Component hoverText = Utils.coloredMessage("&a%s 和 %s 使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, args[1]));
+            int totalCount = 0;
+            for (IpRecordManager.SameIpStats sameIpStats : entry.getValue()) {
+                hoverText = hoverText.append(Utils.coloredMessage("&6%s (%s) &f| &6%d次\n".formatted(sameIpStats.getIp(), sameIpStats.getIpLocation(), sameIpStats.getCount())));
+                totalCount += sameIpStats.getCount();
+            }
+
+            Component temp = Utils.coloredMessage("&6%s &f| &6使用相同ip登录次数：%d\n".formatted(historyNamesStr, totalCount));
+            temp = temp.hoverEvent(HoverEvent.showText(hoverText));
+            dupeipOutput = dupeipOutput.append(temp);
+        }
+        source.sendMessage(dupeipOutput);
     }
 
     private @NotNull String getHistoryNamesStr(String playerNameOrUuid) {
@@ -113,10 +157,17 @@ public class IpToolsCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        if (invocation.arguments().length == 0)
+        if (invocation.arguments().length == 0) {
             return List.of("dupeip", "iphistory");
-        else
-            return Utils.getAllPlayerName();
+        } else if (invocation.arguments().length == 1) {
+            List<String> suggest = Utils.getAllPlayerName();
+            suggest.addFirst("--range");
+            return suggest;
+        } else if (invocation.arguments().length == 2) {
+            return List.of("--range");
+        } else {
+            return List.of();
+        }
     }
 
     @Override
