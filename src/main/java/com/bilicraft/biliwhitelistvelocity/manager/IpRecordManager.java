@@ -2,6 +2,8 @@ package com.bilicraft.biliwhitelistvelocity.manager;
 
 import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,16 +18,15 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class IpRecordManager {
     private final BiliWhiteListVelocity plugin;
     private final String recordTableName = "ip_record";
-    private final Map<String, String> locCache;
+    private final Cache<String, String> locCache;
 
     public IpRecordManager(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
-        this.locCache = new ConcurrentHashMap<>();
+        this.locCache = CacheBuilder.newBuilder().maximumSize(200).build();
 
         // 创建记录表
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); Statement statement = connection.createStatement()) {
@@ -70,26 +71,32 @@ public class IpRecordManager {
         if (!(Boolean) Config.getAssociatedAccountConf().getOrDefault("db-record-loc", true)) {
             return null;
         }
-        if (locCache.containsKey(ip)) {
-            return locCache.get(ip);
+        String cache = locCache.getIfPresent(ip);
+        if (cache != null) {
+            return cache;
         }
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
-                    .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
-                    .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        synchronized (this) {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
+                        .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
+                        .build();
 
-            Gson gson = new Gson();
-            LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
-            String loc = "%s-%s-%s".formatted(respJson.country, respJson.region, respJson.city);
-            locCache.put(ip, loc);
-            plugin.getLogger().info("loc查询结果：{}", loc);
-            return loc;
-        } catch (Exception e) {
-            plugin.getLogger().warn(e.toString());
-            return "未知-未知-未知";
+                for (int i = 0; i < 3; i++) {
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
+                        String loc = "%s-%s-%s".formatted(respJson.country, respJson.region, respJson.city);
+                        locCache.put(ip, loc);
+                        return loc;
+                    }
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warn(e.toString());
+            }
         }
+        return "未知-未知-未知";
     }
 
     /**
