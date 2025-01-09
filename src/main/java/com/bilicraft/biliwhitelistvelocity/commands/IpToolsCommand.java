@@ -99,7 +99,9 @@ public class IpToolsCommand implements SimpleCommand {
         }
 
         String historyNamesStr;
-        if (playerHistoryNames.size() == 1) {
+        if (playerHistoryNames.isEmpty()) {
+            return playerNameOrUuid;
+        } else if (playerHistoryNames.size() == 1) {
             historyNamesStr = playerHistoryNames.getFirst();
         } else {
             String newName = playerHistoryNames.getLast();
