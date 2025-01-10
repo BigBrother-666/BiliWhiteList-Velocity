@@ -7,20 +7,18 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class IpToolsCommand implements SimpleCommand {
     private final BiliWhiteListVelocity plugin;
+    private List<String> bannedPlayersUuid;
 
     public IpToolsCommand(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
+        this.bannedPlayersUuid = new ArrayList<>();
     }
 
     @Override
@@ -30,32 +28,39 @@ public class IpToolsCommand implements SimpleCommand {
 
         if (args.length < 1) {
             source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>] : 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n" +
-                    "&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
+                    "&c/bciptool iphistory <玩家ID> [--range <days>] : 查看某玩家的登录ip及属地统计信息"));
             return;
         }
 
         plugin.getServer().getScheduler().buildTask(plugin, () -> {
+            bannedPlayersUuid = plugin.getIpRecordManager().getBannedPlayersUuid();
+            // 查找range参数
+            String arg = findArg("--range", args);
+            int range = -1;
+            if (arg != null) {
+                try {
+                    range = Integer.parseInt(arg);
+                    if (range <= 0) {
+                        source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
+                    return;
+                }
+            }
+
             switch (args[0]) {
                 case "dupeip":
-                    source.sendMessage(Utils.coloredMessage("&b正在查询，请稍后..."));
-                    source.sendMessage(Utils.coloredMessage("&f========================================================="));
-                    String arg = findArg("--range", args);
-                    int range = -1;
-                    if (arg != null) {
-                        try {
-                            range = Integer.parseInt(arg);
-                            if (range <= 0) {
-                                source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
-                                return;
-                            }
-                        } catch (NumberFormatException e) {
-                            source.sendMessage(Utils.coloredMessage("&crange必须为正整数！"));
-                            return;
-                        }
+                    if (range <= 0) {
+                        source.sendMessage(Utils.coloredMessage("&b正在根据全部登录记录查询，请稍后..."));
+                    } else {
+                        source.sendMessage(Utils.coloredMessage("&b正在根据 %d 天内的登录记录查询，请稍后...".formatted(range)));
                     }
+                    source.sendMessage(Utils.coloredMessage("&f========================================================="));
                     if (args.length == 1 || range != -1 && args.length == 3) {
                         // 查询所有封禁玩家
-                        for (String uuid : plugin.getIpRecordManager().getBannedPlayersUuid()) {
+                        for (String uuid : bannedPlayersUuid) {
                             Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(uuid, range);
                             subcommandDupeip(uuid, source, players);
                         }
@@ -70,13 +75,17 @@ public class IpToolsCommand implements SimpleCommand {
                     break;
                 case "iphistory":
                     if (args.length == 1 || args[1].trim().isEmpty()) {
-                        source.sendMessage(Utils.coloredMessage("&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
+                        source.sendMessage(Utils.coloredMessage("&c/bciptool iphistory <玩家ID> [--range <days>] : 查看某玩家的登录ip及属地统计信息"));
                         return;
                     }
-                    source.sendMessage(Utils.coloredMessage("&b正在查询，请稍后..."));
+                    if (range <= 0) {
+                        source.sendMessage(Utils.coloredMessage("&b正在根据全部登录记录查询，请稍后..."));
+                    } else {
+                        source.sendMessage(Utils.coloredMessage("&b正在根据 %d 天内的登录记录查询，请稍后...".formatted(range)));
+                    }
                     source.sendMessage(Utils.coloredMessage("&f========================================================="));
                     Component iphistoryOutput = Utils.coloredMessage("&6%s &a的登录信息（指针移动到各行可查看详情）：\n".formatted(getHistoryNamesStr(args[1])));
-                    List<IpRecordManager.IpLocationStats> playerIpLocationRatio = plugin.getIpRecordManager().getPlayerIpLocationRatio(args[1]);
+                    List<IpRecordManager.IpLocationStats> playerIpLocationRatio = plugin.getIpRecordManager().getPlayerIpLocationRatio(args[1], range);
 
                     if (playerIpLocationRatio.isEmpty()) {
                         source.sendMessage(Utils.coloredMessage("&e没有查询到 %s &e的登录信息".formatted(getHistoryNamesStr(args[1]))));
@@ -101,10 +110,10 @@ public class IpToolsCommand implements SimpleCommand {
                     break;
                 default:
                     source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>]: 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n" +
-                            "&c/bciptool iphistory <玩家ID> : 查看某玩家的登录ip及属地统计信息"));
+                            "&c/bciptool iphistory <玩家ID> [--range <days>] : 查看某玩家的登录ip及属地统计信息"));
                     return;
             }
-            source.sendMessage(Utils.coloredMessage("&a查询完成！正在封禁的玩家已用&c红色字体&a标出。"));
+            source.sendMessage(Utils.coloredMessage("&b查询完成！正在封禁的玩家已用&c红色字体&b标出。"));
         }).schedule();
     }
 
@@ -143,6 +152,7 @@ public class IpToolsCommand implements SimpleCommand {
             return;
         }
 
+        TreeMap<Integer, Component> treeMap = new TreeMap<>(Comparator.reverseOrder());
         for (Map.Entry<String, ArrayList<IpRecordManager.SameIpStats>> entry : players.entrySet()) {
             String historyNamesStr = getHistoryNamesStr(entry.getKey());
             Component hoverText = Utils.coloredMessage("&6%s &a和 %s &a使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, getHistoryNamesStr(playerName)));
@@ -154,7 +164,10 @@ public class IpToolsCommand implements SimpleCommand {
 
             Component temp = Utils.coloredMessage("&6%s &f| &6使用相同ip登录次数：%d\n".formatted(historyNamesStr, totalCount));
             temp = temp.hoverEvent(HoverEvent.showText(hoverText));
-            dupeipOutput = dupeipOutput.append(temp);
+            treeMap.put(totalCount, temp);
+        }
+        for (Map.Entry<Integer, Component> entry : treeMap.entrySet()) {
+            dupeipOutput = dupeipOutput.append(entry.getValue());
         }
         source.sendMessage(dupeipOutput);
         source.sendMessage(Utils.coloredMessage("&f========================================================="));
@@ -162,7 +175,6 @@ public class IpToolsCommand implements SimpleCommand {
 
     private @NotNull String getHistoryNamesStr(String playerNameOrUuid) {
         List<String> playerHistoryNames;
-        List<String> bannedPlayersUuid = plugin.getIpRecordManager().getBannedPlayersUuid();
         if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
             // uuid
             playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByUuid(playerNameOrUuid);

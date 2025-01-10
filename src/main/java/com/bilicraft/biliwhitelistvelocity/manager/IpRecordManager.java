@@ -25,10 +25,12 @@ public class IpRecordManager {
     private final BiliWhiteListVelocity plugin;
     private final String recordTableName = "ip_record";
     private final Cache<String, String> locCache;
+    private final Cache<String, String> uuidCache;
 
     public IpRecordManager(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
         this.locCache = CacheBuilder.newBuilder().maximumSize(200).build();
+        this.uuidCache = CacheBuilder.newBuilder().maximumSize(200).build();
 
         // 创建记录表
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); Statement statement = connection.createStatement()) {
@@ -109,11 +111,16 @@ public class IpRecordManager {
      */
     @Nullable
     public String getPlayerUuidByName(String playerName) {
+        String playerUuid = uuidCache.getIfPresent(playerName);
+        if (playerUuid != null) {
+            return playerUuid;
+        }
         String sql = "SELECT DISTINCT player_uuid FROM ip_record WHERE player_name = ?";
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
+                uuidCache.put(playerName, rs.getString("player_uuid"));
                 return rs.getString("player_uuid");
             } else {
                 return null;
@@ -146,8 +153,13 @@ public class IpRecordManager {
         return names;
     }
 
-    private List<IpLocationInfo> getPlayerIplocationinfoById(String playerUuid, String ipLoc) {
-        String sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? GROUP BY ip ORDER BY count";
+    private List<IpLocationInfo> getPlayerIplocationinfoById(String playerUuid, String ipLoc, int range) {
+        String sql;
+        if (range > 0) {
+            sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip ORDER BY count".formatted(range);
+        } else {
+            sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? GROUP BY ip ORDER BY count";
+        }
         List<IpLocationInfo> info = new ArrayList<>();
 
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -156,7 +168,11 @@ public class IpRecordManager {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 // 查询该ip的登录时间
-                sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ?";
+                if (range > 0) {
+                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+                } else {
+                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ?";
+                }
                 PreparedStatement stmt2 = connection.prepareStatement(sql);
                 stmt2.setString(1, playerUuid);
                 stmt2.setString(2, rs.getString("ip"));
@@ -190,6 +206,7 @@ public class IpRecordManager {
      * 查找和某玩家使用相同ip登陆过的玩家
      *
      * @param playerNameOrUuid 玩家名或uuid
+     * @param range            只查找range天内的log，<=0为全部
      * @return 使用相同ip登录的玩家列表
      */
     public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerNameOrUuid, int range) {
@@ -235,10 +252,16 @@ public class IpRecordManager {
      * 统计某玩家的登录ip属地占比
      *
      * @param playerName 玩家名
+     * @param range      只查找range天内的log，<=0为全部
      * @return ip属地统计
      */
-    public List<IpLocationStats> getPlayerIpLocationRatio(String playerName) {
-        String sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? GROUP BY ip_location";
+    public List<IpLocationStats> getPlayerIpLocationRatio(String playerName, int range) {
+        String sql;
+        if (range > 0) {
+            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(range);
+        } else {
+            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? GROUP BY ip_location";
+        }
         List<IpLocationStats> locationStats = new ArrayList<>();
         String playerUuid = getPlayerUuidByName(playerName);
         if (playerUuid == null) {
@@ -252,7 +275,7 @@ public class IpRecordManager {
             while (rs.next()) {
                 String ipLocation = rs.getString("ip_location");
                 int count = rs.getInt("count");
-                locationStats.add(new IpLocationStats(ipLocation, count, getPlayerIplocationinfoById(playerUuid, ipLocation)));
+                locationStats.add(new IpLocationStats(ipLocation, count, getPlayerIplocationinfoById(playerUuid, ipLocation, range)));
             }
 
             Collections.sort(locationStats);
@@ -265,6 +288,7 @@ public class IpRecordManager {
 
     /**
      * 获取当前所有封禁玩家
+     *
      * @return 封禁玩家uuid列表
      */
     public List<String> getBannedPlayersUuid() {
