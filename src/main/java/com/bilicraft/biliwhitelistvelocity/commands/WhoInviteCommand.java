@@ -50,7 +50,7 @@ public class WhoInviteCommand implements SimpleCommand {
                 source.sendMessage(Utils.coloredMessage("&c该玩家无人邀请、为虚拟玩家或者网络故障"));
                 return;
             }
-            source.sendMessage(Utils.coloredMessage("&a查询结果: &e" + inviter.getName()));
+            source.sendMessage(Utils.coloredMessage("&a查询结果: &e%s &8(%s)".formatted(inviter.getName(), inviter.getUniqueId().toString())));
         } catch (IOException | InterruptedException exception) {
             source.sendMessage(Utils.coloredMessage("&c内部错误，请稍后重试。错误代码：&7" + exception.getMessage()));
         }
