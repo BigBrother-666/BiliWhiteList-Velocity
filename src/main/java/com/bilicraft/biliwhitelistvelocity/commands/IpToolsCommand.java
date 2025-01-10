@@ -11,6 +11,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IpToolsCommand implements SimpleCommand {
     private final BiliWhiteListVelocity plugin;
@@ -208,15 +210,32 @@ public class IpToolsCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        if (invocation.arguments().length == 0) {
+        String[] args = invocation.arguments();
+
+        if (args.length == 0) {
             return List.of("dupeip", "iphistory");
-        } else {
-            List<String> suggest = Utils.getAllPlayerName();
-            if (invocation.arguments().length > 0 && invocation.arguments()[0].trim().equals("dupeip")) {
+        }
+
+        if (args.length == 1) {
+            return Stream.of("dupeip", "iphistory")
+                    .filter(cmd -> cmd.toLowerCase().startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+
+        if ((args.length == 2 || args.length == 3) && !args[args.length - 2].equals("--range")) {
+            List<String> suggest = new ArrayList<>();
+            if (args.length == 2) {
+                suggest.addAll(Utils.getAllPlayerName());
+            }
+            if (!(args[args.length - 2].equals("iphistory") && args.length == 2)) {
                 suggest.addFirst("--range");
             }
-            return suggest;
+            return suggest.stream()
+                    .filter(cmd -> cmd.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
+                    .collect(Collectors.toList());
         }
+
+        return new ArrayList<>();
     }
 
     @Override
