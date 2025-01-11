@@ -138,7 +138,7 @@ public class IpToolsCommand implements SimpleCommand {
                 source.sendMessage(Utils.coloredMessage("&f========================================================="));
                 return;
             }
-            playerName = playerHistoryNames.getLast();
+            playerName = playerHistoryNames.get(playerHistoryNames.size() - 1);
             if (playerName == null) {
                 source.sendMessage(Utils.coloredMessage("&e没有查询到uuid: %s &e的登录记录\n".formatted(getHistoryNamesStr(playerNameOrUuid))));
                 source.sendMessage(Utils.coloredMessage("&f========================================================="));
@@ -190,19 +190,19 @@ public class IpToolsCommand implements SimpleCommand {
             }
         }
 
-        if (!playerHistoryNames.isEmpty() && bannedPlayersUuid.contains(plugin.getIpRecordManager().getPlayerUuidByName(playerHistoryNames.getLast()))) {
-            String lastName = playerHistoryNames.getLast();
-            playerHistoryNames.removeLast();
-            playerHistoryNames.addLast("&c" + lastName);
+        if (!playerHistoryNames.isEmpty() && bannedPlayersUuid.contains(plugin.getIpRecordManager().getPlayerUuidByName(playerHistoryNames.get(playerHistoryNames.size() - 1)))) {
+            String lastName = playerHistoryNames.get(playerHistoryNames.size() - 1);
+            playerHistoryNames.remove(playerHistoryNames.size() - 1);
+            playerHistoryNames.add("&c" + lastName);
         }
         String historyNamesStr;
         if (playerHistoryNames.isEmpty()) {
             return playerNameOrUuid;
         } else if (playerHistoryNames.size() == 1) {
-            historyNamesStr = playerHistoryNames.getFirst();
+            historyNamesStr = playerHistoryNames.get(0);
         } else {
-            String newName = playerHistoryNames.getLast();
-            playerHistoryNames.removeLast();
+            String newName = playerHistoryNames.get(playerHistoryNames.size() - 1);
+            playerHistoryNames.remove(playerHistoryNames.size() - 1);
             historyNamesStr = newName + "（曾用名：" + String.join(", ", playerHistoryNames) + "）";
         }
         return historyNamesStr;
@@ -228,7 +228,7 @@ public class IpToolsCommand implements SimpleCommand {
                 suggest.addAll(Utils.getAllPlayerName());
             }
             if (!(args[args.length - 2].equals("iphistory") && args.length == 2)) {
-                suggest.addFirst("--range");
+                suggest.add(0, "--range");
             }
             return suggest.stream()
                     .filter(cmd -> cmd.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
