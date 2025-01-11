@@ -36,7 +36,7 @@ import java.util.Map;
 @Plugin(
         id = "biliwhitelist-velocity",
         name = "BiliWhiteList-Velocity",
-        version = "2.0",
+        version = "2.1",
         description = "Velocity version of BiliWhiteList plugin",
         authors = {"Ghost_chu", "BlackFoxSAR", "BigBrother"},
         dependencies = {
