@@ -11,6 +11,7 @@ import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -80,14 +81,16 @@ public class IpRecordManager {
             return cache;
         }
         synchronized (this) {
-            try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
-                        .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
-                        .build();
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
+                    .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
+                    .build();
 
-                for (int i = 0; i < 3; i++) {
-                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            for (int i = 0; i < 3; i++) {
+                HttpResponse<String> response;
+                try {
+                    response = client.send(request, HttpResponse.BodyHandlers.ofString());
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
                         LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
@@ -95,9 +98,9 @@ public class IpRecordManager {
                         locCache.put(ip, loc);
                         return loc;
                     }
+                } catch (IOException | InterruptedException e) {
+                    plugin.getLogger().warn(e.toString());
                 }
-            } catch (Exception e) {
-                plugin.getLogger().warn(e.toString());
             }
         }
         return "未知-未知-未知";
