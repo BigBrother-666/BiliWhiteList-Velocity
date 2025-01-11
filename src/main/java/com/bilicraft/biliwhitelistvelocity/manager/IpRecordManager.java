@@ -311,6 +311,36 @@ public class IpRecordManager {
     }
 
     /**
+     * 获取属地为null或未知的ip
+     * @return ip列表
+     */
+    public List<String> getUnknownLocIp(int range) {
+        List<String> unknownLocIp = new ArrayList<>();
+        String sql = "SELECT DISTINCT ip FROM ip_record WHERE (ip_location IS NULL OR ip_location='未知-未知-未知') AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                unknownLocIp.add(rs.getString("ip"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return unknownLocIp;
+    }
+
+    public int updateLoc(String ip, int range) {
+        String sql = "UPDATE ip_record SET ip_location = ? WHERE ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, getIpLocation(ip));
+            stmt.setString(2, ip);
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return 0;
+    }
+
+    /**
      * dupeip指令使用
      */
     @Data

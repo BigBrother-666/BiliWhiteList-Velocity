@@ -5,6 +5,8 @@ import com.bilicraft.biliwhitelistvelocity.common.Utils;
 import com.bilicraft.biliwhitelistvelocity.manager.IpRecordManager;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +19,8 @@ import java.util.stream.Stream;
 public class IpToolsCommand implements SimpleCommand {
     private final BiliWhiteListVelocity plugin;
     private List<String> bannedPlayersUuid;
+    private static ScheduledTask updateTask;
+    private volatile boolean shouldStopTask = false;
 
     public IpToolsCommand(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
@@ -110,6 +114,43 @@ public class IpToolsCommand implements SimpleCommand {
                     source.sendMessage(iphistoryOutput);
                     source.sendMessage(Utils.coloredMessage("&f========================================================="));
                     break;
+                case "update":
+                    if (args.length == 1) {
+                        return;
+                    }
+                    if (args[1].equals("start")) {
+                        if (range <= 0) {
+                            source.sendMessage(Utils.coloredMessage("&c必须指定range"));
+                            return;
+                        }
+                        List<String> unknownLocIp = plugin.getIpRecordManager().getUnknownLocIp(range);
+                        source.sendMessage(Utils.coloredMessage("&a查询到 %d 条没有属地的ip，开始更新...".formatted(unknownLocIp.size())));
+                        int innerRange = range;
+                        updateTask = plugin.getServer().getScheduler().buildTask(plugin, () -> {
+                            int updateCnt = 0;
+                            for (String ip : unknownLocIp) {
+                                if (shouldStopTask) {
+                                    source.sendMessage(Utils.coloredMessage("&a任务停止成功"));
+                                    shouldStopTask = false;
+                                    updateTask = null;
+                                    return;
+                                }
+                                updateCnt += plugin.getIpRecordManager().updateLoc(ip, innerRange);
+                            }
+                            source.sendMessage(Utils.coloredMessage("&aip属地更新完成，共更新了 %s 条数据".formatted(updateCnt)));
+                            if (source instanceof Player) {
+                                plugin.getServer().getConsoleCommandSource().sendMessage(Utils.coloredMessage("&aip属地更新完成，共更新了 %s 条数据".formatted(updateCnt)));
+                            }
+                            updateTask = null;
+                        }).schedule();
+                    } else if (args[1].equals("stop")) {
+                        if (updateTask == null) {
+                            source.sendMessage(Utils.coloredMessage("&a任务不存在"));
+                        } else {
+                            shouldStopTask = true;
+                        }
+                    }
+                    return;
                 default:
                     source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>]: 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n" +
                             "&c/bciptool iphistory <玩家ID> [--range <days>] : 查看某玩家的登录ip及属地统计信息"));
