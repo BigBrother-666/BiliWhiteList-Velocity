@@ -222,9 +222,9 @@ public class IpRecordManager {
         }
         String sql;
         if (range > 0) {
-            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(range);
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(range);
         } else {
-            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND player_uuid != ? GROUP BY ip, player_uuid";
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? GROUP BY ip, player_uuid";
         }
         if (playerUuid == null) {
             return sameIpPlayers;
@@ -261,9 +261,9 @@ public class IpRecordManager {
     public List<IpLocationStats> getPlayerIpLocationRatio(String playerName, int range) {
         String sql;
         if (range > 0) {
-            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(range);
+            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(range);
         } else {
-            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? GROUP BY ip_location";
+            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL GROUP BY ip_location";
         }
         List<IpLocationStats> locationStats = new ArrayList<>();
         String playerUuid = getPlayerUuidByName(playerName);
