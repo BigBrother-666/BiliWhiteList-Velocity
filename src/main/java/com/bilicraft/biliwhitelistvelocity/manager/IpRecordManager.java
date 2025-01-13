@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.*;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,11 +28,13 @@ public class IpRecordManager {
     private final String recordTableName = "ip_record";
     private final Cache<String, String> locCache;
     private final Cache<String, String> uuidCache;
+    private final Cache<String, List<String>> allPlayerNameCache;
 
     public IpRecordManager(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
         this.locCache = CacheBuilder.newBuilder().maximumSize(200).build();
         this.uuidCache = CacheBuilder.newBuilder().maximumSize(200).build();
+        this.allPlayerNameCache = CacheBuilder.newBuilder().expireAfterWrite(Duration.ofHours(1)).build();
 
         // 创建记录表
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); Statement statement = connection.createStatement()) {
@@ -192,34 +195,14 @@ public class IpRecordManager {
     }
 
     /**
-     * 通过玩家名查找曾用名
-     *
-     * @param playerName 玩家名
-     * @return 曾用名列表
-     */
-    public List<String> getPlayerHistoryNamesByName(String playerName) {
-        String playerUuid = getPlayerUuidByName(playerName);
-        if (playerUuid == null) {
-            return new ArrayList<>();
-        }
-        return getPlayerHistoryNamesByUuid(playerUuid);
-    }
-
-    /**
      * 查找和某玩家使用相同ip登陆过的玩家
      *
-     * @param playerNameOrUuid 玩家名或uuid
+     * @param playerUuid 玩家uuid
      * @param range            只查找range天内的log，<=0为全部
      * @return 使用相同ip登录的玩家列表
      */
-    public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerNameOrUuid, int range) {
+    public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerUuid, int range) {
         Map<String, ArrayList<SameIpStats>> sameIpPlayers = new HashMap<>();
-        String playerUuid;
-        if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
-            playerUuid = playerNameOrUuid;
-        } else {
-            playerUuid = getPlayerUuidByName(playerNameOrUuid);
-        }
         String sql;
         if (range > 0) {
             sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(range);
@@ -254,11 +237,11 @@ public class IpRecordManager {
     /**
      * 统计某玩家的登录ip属地占比
      *
-     * @param playerName 玩家名
+     * @param playerUuid 玩家uuid
      * @param range      只查找range天内的log，<=0为全部
      * @return ip属地统计
      */
-    public List<IpLocationStats> getPlayerIpLocationRatio(String playerName, int range) {
+    public List<IpLocationStats> getPlayerIpLocationRatio(String playerUuid, int range) {
         String sql;
         if (range > 0) {
             sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(range);
@@ -266,7 +249,6 @@ public class IpRecordManager {
             sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL GROUP BY ip_location";
         }
         List<IpLocationStats> locationStats = new ArrayList<>();
-        String playerUuid = getPlayerUuidByName(playerName);
         if (playerUuid == null) {
             return locationStats;
         }
@@ -328,6 +310,12 @@ public class IpRecordManager {
         return unknownLocIp;
     }
 
+    /**
+     * 更新某天内的某ip的属地
+     * @param ip ip
+     * @param range 天数
+     * @return 更新的行数
+     */
     public int updateLoc(String ip, int range) {
         String sql = "UPDATE ip_record SET ip_location = ? WHERE ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(range);
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -338,6 +326,44 @@ public class IpRecordManager {
             plugin.getLogger().error(e.toString());
         }
         return 0;
+    }
+
+    /**
+     * @param uuid 玩家uuid
+     * @return 玩家是否被回绝
+     */
+    public boolean isPlayerBlocked(String uuid) {
+        if (uuid == null) {
+            return false;
+        }
+        WhiteListManager.QueryResult queryResult = plugin.getWhiteListManager().queryRecord(UUID.fromString(uuid));
+        if (queryResult == null) {
+            return false;
+        }
+        return queryResult.isBlocked();
+    }
+
+    /**
+     * @return 获取所有记录的玩家名
+     */
+    public List<String> getAllPlayerName() {
+        List<String> cache = allPlayerNameCache.getIfPresent("cache"); // 获取缓存
+        if (cache != null) {
+            return cache;
+        }
+
+        List<String> playerName = new ArrayList<>();
+        String sql = "SELECT DISTINCT player_name FROM ip_record";
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                playerName.add(rs.getString("player_name"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        allPlayerNameCache.put("cache", playerName);
+        return playerName;
     }
 
     /**

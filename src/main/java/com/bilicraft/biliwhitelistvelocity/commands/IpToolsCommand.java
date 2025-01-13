@@ -72,8 +72,13 @@ public class IpToolsCommand implements SimpleCommand {
                         }
                     } else if (!args[1].trim().isEmpty() && !args[1].trim().equals("--range")) {
                         // 查询单个玩家
-                        Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(args[1], range);
-                        subcommandDupeip(args[1], source, players);
+                        String playerUuid = plugin.getIpRecordManager().getPlayerUuidByName(args[1]);
+                        if (playerUuid == null) {
+                            source.sendMessage(Utils.coloredMessage("&e没有查询到 %s &e的登录信息".formatted(args[1])));
+                            return;
+                        }
+                        Map<String, ArrayList<IpRecordManager.SameIpStats>> players = plugin.getIpRecordManager().getPlayersWithSameIP(playerUuid, range);
+                        subcommandDupeip(playerUuid, source, players);
                     } else {
                         source.sendMessage(Utils.coloredMessage("&c/bciptool dupeip [玩家ID] [--range <days>] : 查询某玩家关联的账号，不指定玩家名则查询所有已封禁玩家关联的账号，--range是可选参数，表示根据指定天数内的log查询。\n"));
                         return;
@@ -90,18 +95,25 @@ public class IpToolsCommand implements SimpleCommand {
                         source.sendMessage(Utils.coloredMessage("&b正在根据 %d 天内的登录记录查询，请稍后...".formatted(range)));
                     }
                     source.sendMessage(Utils.coloredMessage("&f========================================================="));
-                    Component iphistoryOutput = Utils.coloredMessage("&6%s &a的登录信息（指针移动到各行可查看详情）：\n".formatted(getHistoryNamesStr(args[1])));
-                    List<IpRecordManager.IpLocationStats> playerIpLocationRatio = plugin.getIpRecordManager().getPlayerIpLocationRatio(args[1], range);
+
+                    String playerUuid = plugin.getIpRecordManager().getPlayerUuidByName(args[1]);
+                    if (playerUuid == null) {
+                        source.sendMessage(Utils.coloredMessage("&e没有查询到 %s &e的登录信息".formatted(args[1])));
+                        return;
+                    }
+                    Component iphistoryOutput = Utils.coloredMessage("&6%s &a的登录信息（指针移动到各行可查看详情）：\n".formatted(getHistoryNamesStr(playerUuid)));
+                    // 查询
+                    List<IpRecordManager.IpLocationStats> playerIpLocationRatio = plugin.getIpRecordManager().getPlayerIpLocationRatio(playerUuid, range);
 
                     if (playerIpLocationRatio.isEmpty()) {
-                        source.sendMessage(Utils.coloredMessage("&e没有查询到 %s &e的登录信息".formatted(getHistoryNamesStr(args[1]))));
+                        source.sendMessage(Utils.coloredMessage("&e没有查询到 %s &e的登录信息".formatted(getHistoryNamesStr(playerUuid))));
                         return;
                     }
 
                     int total = IpRecordManager.IpLocationStats.getTotalLogin(playerIpLocationRatio);
                     for (IpRecordManager.IpLocationStats ipLocationStats : playerIpLocationRatio) {
                         // 生成悬浮文字
-                        Component hoverText = Utils.coloredMessage("&a玩家 %s &a登录属地 %s 的ip详情：\n&f-------------------------------------------\n".formatted(getHistoryNamesStr(args[1]), ipLocationStats.getIpLocation()));
+                        Component hoverText = Utils.coloredMessage("&a玩家 %s &a登录属地 %s 的ip详情：\n&f-------------------------------------------\n".formatted(getHistoryNamesStr(playerUuid), ipLocationStats.getIpLocation()));
                         hoverText = hoverText.append(Utils.coloredMessage("&l     &6ip     &f| &6使用次数 &f|     &6第一次登录时间   &f|      &6最后登录时间  \n"));
                         List<IpRecordManager.IpLocationInfo> info = ipLocationStats.getInfo();
                         for (IpRecordManager.IpLocationInfo ipLocationInfo : info) {
@@ -156,7 +168,7 @@ public class IpToolsCommand implements SimpleCommand {
                             "&c/bciptool iphistory <玩家ID> [--range <days>] : 查看某玩家的登录ip及属地统计信息"));
                     return;
             }
-            source.sendMessage(Utils.coloredMessage("&b查询完成！正在封禁的玩家已用&c红色字体&b标出。"));
+            source.sendMessage(Utils.coloredMessage("&b查询完成！正在封禁的玩家已用&c红色字体&b标出，白名单已回绝的玩家已用&4深红色字体&b标出。"));
         }).schedule();
     }
 
@@ -170,27 +182,13 @@ public class IpToolsCommand implements SimpleCommand {
         return null;
     }
 
-    private void subcommandDupeip(String playerNameOrUuid, CommandSource source, Map<String, ArrayList<IpRecordManager.SameIpStats>> players) {
-        String playerName;
-        if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
-            List<String> playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByUuid(playerNameOrUuid);
-            if (playerHistoryNames == null || playerHistoryNames.isEmpty()) {
-                source.sendMessage(Utils.coloredMessage("&e没有查询到uuid: %s &e的登录记录\n".formatted(getHistoryNamesStr(playerNameOrUuid))));
-                source.sendMessage(Utils.coloredMessage("&f========================================================="));
-                return;
-            }
-            playerName = playerHistoryNames.get(playerHistoryNames.size() - 1);
-            if (playerName == null) {
-                source.sendMessage(Utils.coloredMessage("&e没有查询到uuid: %s &e的登录记录\n".formatted(getHistoryNamesStr(playerNameOrUuid))));
-                source.sendMessage(Utils.coloredMessage("&f========================================================="));
-                return;
-            }
-        } else {
-            playerName = playerNameOrUuid;
-        }
-        Component dupeipOutput = Utils.coloredMessage("&a和 %s &a使用相同ip登录过的玩家（指针移动到玩家名上查看相同ip详情）：\n".formatted(getHistoryNamesStr(playerName)));
+    /**
+     * dupeip核心逻辑
+     */
+    private void subcommandDupeip(String playerUuid, CommandSource source, Map<String, ArrayList<IpRecordManager.SameIpStats>> players) {
+        Component dupeipOutput = Utils.coloredMessage("&a和 %s &a使用相同ip登录过的玩家（指针移动到玩家名上查看相同ip详情）：\n".formatted(getHistoryNamesStr(playerUuid)));
         if (players.isEmpty()) {
-            source.sendMessage(Utils.coloredMessage("&e没有查询到和 %s &e使用相同ip登录过的玩家\n".formatted(getHistoryNamesStr(playerName))));
+            source.sendMessage(Utils.coloredMessage("&e没有查询到和 %s &e使用相同ip登录过的玩家\n".formatted(getHistoryNamesStr(playerUuid))));
             source.sendMessage(Utils.coloredMessage("&f========================================================="));
             return;
         }
@@ -198,7 +196,7 @@ public class IpToolsCommand implements SimpleCommand {
         TreeMap<Integer, Component> treeMap = new TreeMap<>(Comparator.reverseOrder());
         for (Map.Entry<String, ArrayList<IpRecordManager.SameIpStats>> entry : players.entrySet()) {
             String historyNamesStr = getHistoryNamesStr(entry.getKey());
-            Component hoverText = Utils.coloredMessage("&6%s &a和 %s &a使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, getHistoryNamesStr(playerName)));
+            Component hoverText = Utils.coloredMessage("&6%s &a和 %s &a使用相同ip详情：\n&f-------------------------------------------\n".formatted(historyNamesStr, getHistoryNamesStr(playerUuid)));
             int totalCount = 0;
             for (IpRecordManager.SameIpStats sameIpStats : entry.getValue()) {
                 hoverText = hoverText.append(Utils.coloredMessage("&6%s (%s) &f| &6%d次\n".formatted(sameIpStats.getIp(), sameIpStats.getIpLocation(), sameIpStats.getCount())));
@@ -216,35 +214,35 @@ public class IpToolsCommand implements SimpleCommand {
         source.sendMessage(Utils.coloredMessage("&f========================================================="));
     }
 
-    private @NotNull String getHistoryNamesStr(String playerNameOrUuid) {
-        List<String> playerHistoryNames;
-        if (playerNameOrUuid.length() == 36 && playerNameOrUuid.contains("-")) {
-            // uuid
-            playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByUuid(playerNameOrUuid);
-            if (bannedPlayersUuid.contains(playerNameOrUuid)) {
-                playerNameOrUuid = "&c" + playerNameOrUuid;
-            }
-        } else {
-            playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByName(playerNameOrUuid);
-            if (bannedPlayersUuid.contains(plugin.getIpRecordManager().getPlayerUuidByName(playerNameOrUuid))) {
-                playerNameOrUuid = "&c" + playerNameOrUuid;
-            }
-        }
+    /**
+     * @param playerUuid 玩家uuid
+     * @return 玩家名和曾用名（如果有）输出格式字符串
+     */
+    private @NotNull String getHistoryNamesStr(String playerUuid) {
+        // 获取玩家历史名列表
+        List<String> playerHistoryNames = plugin.getIpRecordManager().getPlayerHistoryNamesByUuid(playerUuid);
 
-        if (!playerHistoryNames.isEmpty() && bannedPlayersUuid.contains(plugin.getIpRecordManager().getPlayerUuidByName(playerHistoryNames.get(playerHistoryNames.size() - 1)))) {
+        if (!playerHistoryNames.isEmpty()) {
+            String uuid = plugin.getIpRecordManager().getPlayerUuidByName(playerHistoryNames.get(playerHistoryNames.size() - 1));
             String lastName = playerHistoryNames.get(playerHistoryNames.size() - 1);
             playerHistoryNames.remove(playerHistoryNames.size() - 1);
-            playerHistoryNames.add("&c" + lastName);
+            if (bannedPlayersUuid.contains(uuid)) {
+                playerHistoryNames.add("&c" + lastName);
+            } else if (plugin.getIpRecordManager().isPlayerBlocked(uuid)) {
+                playerHistoryNames.add("&4" + lastName);
+            } else {
+                playerHistoryNames.add("&6" + lastName);
+            }
         }
         String historyNamesStr;
         if (playerHistoryNames.isEmpty()) {
-            return playerNameOrUuid;
+            return playerUuid;
         } else if (playerHistoryNames.size() == 1) {
             historyNamesStr = playerHistoryNames.get(0);
         } else {
-            String newName = playerHistoryNames.get(playerHistoryNames.size() - 1);
+            String lastName = playerHistoryNames.get(playerHistoryNames.size() - 1);
             playerHistoryNames.remove(playerHistoryNames.size() - 1);
-            historyNamesStr = newName + "（曾用名：" + String.join(", ", playerHistoryNames) + "）";
+            historyNamesStr = lastName + "（曾用名：" + String.join(", ", playerHistoryNames) + "）";
         }
         return historyNamesStr;
     }
@@ -266,7 +264,7 @@ public class IpToolsCommand implements SimpleCommand {
         if ((args.length == 2 || args.length == 3) && !args[args.length - 2].equals("--range")) {
             List<String> suggest = new ArrayList<>();
             if (args.length == 2) {
-                suggest.addAll(Utils.getAllPlayerName());
+                suggest.addAll(plugin.getIpRecordManager().getAllPlayerName());
             }
             if (!(args[args.length - 2].equals("iphistory") && args.length == 2)) {
                 suggest.add(0, "--range");
