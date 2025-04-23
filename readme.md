@@ -35,6 +35,7 @@
 * `/bciptool dupeip [player] [--range <days>]` - 查询某玩家关联的账号。`player`是可选参数，不指定则查询所有已封禁玩家的关联账号；`--range`是可选参数，表示根据指定天数内的log查询，默认根据全部log查询
 * `/bciptool iphistory <player> [--range <days>]` - 查询某玩家的所有登录ip和属地信息
 * `/bciptool update <start/stop> <--range <days>>` - 更新days天内的未知或为null的属地
+* `/bciptool updateplayer <playername> <start/stop>` - 更新某玩家的所有ip属地
 
 ## 权限
 

@@ -126,6 +126,49 @@ public class IpToolsCommand implements SimpleCommand {
                     source.sendMessage(iphistoryOutput);
                     source.sendMessage(Utils.coloredMessage("&f========================================================="));
                     break;
+                case "updateplayer":
+                    if (args.length < 3) {
+                        source.sendMessage(Utils.coloredMessage("&c缺少参数 /bciptool updateplayer <playername> <start/stop>"));
+                        return;
+                    }
+                    if (args[2].equals("start")) {
+                        if (updateTask != null) {
+                            source.sendMessage(Utils.coloredMessage("&e已有进行中的任务"));
+                            return;
+                        }
+                        String uuid = plugin.getIpRecordManager().getPlayerUuidByName(args[1]);
+                        if (uuid == null) {
+                            source.sendMessage(Utils.coloredMessage("&c玩家不存在"));
+                            return;
+                        }
+                        List<String> ipList = plugin.getIpRecordManager().getPlayerLoginIp(uuid);
+                        source.sendMessage(Utils.coloredMessage("&a查询到玩家 %s 的 %d 个登录ip，开始更新登录属地...".formatted(args[1], ipList.size())));
+                        int innerRange = range;
+                        updateTask = plugin.getServer().getScheduler().buildTask(plugin, () -> {
+                            int updateCnt = 0;
+                            for (String ip : ipList) {
+                                if (shouldStopTask) {
+                                    source.sendMessage(Utils.coloredMessage("&a任务停止成功，共更新了 %s 条数据".formatted(updateCnt)));
+                                    shouldStopTask = false;
+                                    updateTask = null;
+                                    return;
+                                }
+                                updateCnt += plugin.getIpRecordManager().updateLoc(ip, innerRange);
+                            }
+                            source.sendMessage(Utils.coloredMessage("&aip属地更新完成，共更新了 %s 条数据".formatted(updateCnt)));
+                            if (source instanceof Player) {
+                                plugin.getServer().getConsoleCommandSource().sendMessage(Utils.coloredMessage("&aip属地更新完成，共更新了 %s 条数据".formatted(updateCnt)));
+                            }
+                            updateTask = null;
+                        }).schedule();
+                    } else if (args[2].equals("stop")) {
+                        if (updateTask == null) {
+                            source.sendMessage(Utils.coloredMessage("&a任务不存在"));
+                        } else {
+                            shouldStopTask = true;
+                        }
+                    }
+                    return;
                 case "update":
                     if (args.length == 1) {
                         return;
@@ -135,6 +178,10 @@ public class IpToolsCommand implements SimpleCommand {
                             source.sendMessage(Utils.coloredMessage("&c必须指定range"));
                             return;
                         }
+                        if (updateTask != null) {
+                            source.sendMessage(Utils.coloredMessage("&e已有进行中的任务"));
+                            return;
+                        }
                         List<String> unknownLocIp = plugin.getIpRecordManager().getUnknownLocIp(range);
                         source.sendMessage(Utils.coloredMessage("&a查询到 %d 条没有属地的ip，开始更新...".formatted(unknownLocIp.size())));
                         int innerRange = range;
@@ -142,7 +189,7 @@ public class IpToolsCommand implements SimpleCommand {
                             int updateCnt = 0;
                             for (String ip : unknownLocIp) {
                                 if (shouldStopTask) {
-                                    source.sendMessage(Utils.coloredMessage("&a任务停止成功"));
+                                    source.sendMessage(Utils.coloredMessage("&a任务停止成功，共更新了 %s 条数据".formatted(updateCnt)));
                                     shouldStopTask = false;
                                     updateTask = null;
                                     return;

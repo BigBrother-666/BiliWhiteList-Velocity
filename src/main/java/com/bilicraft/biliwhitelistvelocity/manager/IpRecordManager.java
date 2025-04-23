@@ -4,7 +4,7 @@ import com.bilicraft.biliwhitelistvelocity.BiliWhiteListVelocity;
 import com.bilicraft.biliwhitelistvelocity.config.Config;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.gson.Gson;
+import com.google.gson.*;
 import litebans.api.Database;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -32,7 +33,7 @@ public class IpRecordManager {
 
     public IpRecordManager(BiliWhiteListVelocity plugin) {
         this.plugin = plugin;
-        this.locCache = CacheBuilder.newBuilder().maximumSize(200).build();
+        this.locCache = CacheBuilder.newBuilder().maximumSize(200).expireAfterWrite(Duration.ofDays(10)).build();
         this.uuidCache = CacheBuilder.newBuilder().maximumSize(200).build();
         this.allPlayerNameCache = CacheBuilder.newBuilder().expireAfterWrite(Duration.ofHours(1)).build();
 
@@ -83,29 +84,58 @@ public class IpRecordManager {
         if (cache != null) {
             return cache;
         }
-        synchronized (this) {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(((String) Config.getJointLiabilityConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip)))
-                    .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
-                    .build();
 
-            for (int i = 0; i < 3; i++) {
-                HttpResponse<String> response;
-                try {
-                    response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
-                        LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
-                        String loc = "%s-%s-%s".formatted(respJson.country, respJson.region, respJson.city);
-                        locCache.put(ip, loc);
-                        return loc;
-                    }
-                } catch (IOException | InterruptedException e) {
-                    plugin.getLogger().warn(e.toString());
+        String url = ((String) Config.getAssociatedAccountConf().getOrDefault("loc-api", "https://api.ip.sb/geoip/{ip}")).replace("{ip}", ip);
+        Gson gson = new GsonBuilder()
+                            .registerTypeAdapter(LocJsonResp.class, new LocJsonResp.LocJsonRespDeserializer())
+                            .create();
+        String loc = sendIpLocationRequest(ip, url, gson);
+        if (loc.equals("未知-未知-未知")) {
+            // 默认接口
+            url = "https://api.ip.sb/geoip/{ip}";
+            gson = new Gson();
+            loc = sendIpLocationRequest(ip, url, gson);
+        }
+//        plugin.getLogger().info("查询成功 url: {} ip: {} loc: {}", url, ip, loc);
+        return loc;
+    }
+
+    /**
+     * 请求ip属地接口
+     *
+     * @param ip 待查询的ip
+     * @param url 接口地址
+     * @param gson gson解析器
+     * @return 属地
+     */
+    private String sendIpLocationRequest(String ip, String url, Gson gson) {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url.replace("{ip}", ip)))
+                .header("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0")
+                .build();
+
+        int maxRetry = 3;
+        for (int i = 0; i < maxRetry; i++) {
+            HttpResponse<String> response;
+            try {
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    LocJsonResp respJson = gson.fromJson(response.body(), LocJsonResp.class);
+                    String loc = "%s-%s-%s".formatted(respJson.country, respJson.region, respJson.city);
+                    locCache.put(ip, loc);
+                    return loc;
+                } else if (i != maxRetry - 1) {
+                    // 5秒后再请求
+                    Thread.sleep(5000);
+                } else {
+                    plugin.getLogger().warn("ip: {} 查询属地失败，重试次数 {}，状态码 {}", ip, maxRetry, response.statusCode());
                 }
+            } catch (IOException | InterruptedException e) {
+                plugin.getLogger().warn(e.toString());
             }
         }
+
         return "未知-未知-未知";
     }
 
@@ -121,7 +151,7 @@ public class IpRecordManager {
         if (playerUuid != null) {
             return playerUuid;
         }
-        String sql = "SELECT DISTINCT player_uuid FROM ip_record WHERE player_name = ?";
+        String sql = "SELECT DISTINCT player_uuid FROM %s WHERE player_name = ?".formatted(recordTableName);
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerName);
             ResultSet rs = stmt.executeQuery();
@@ -145,7 +175,7 @@ public class IpRecordManager {
      */
     public List<String> getPlayerHistoryNamesByUuid(String playerUuid) {
         List<String> names = new ArrayList<>();
-        String sql = "SELECT DISTINCT player_name FROM ip_record WHERE player_uuid = ? ORDER BY login_time";
+        String sql = "SELECT DISTINCT player_name FROM %s WHERE player_uuid = ? ORDER BY login_time".formatted(recordTableName);
 
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, playerUuid);
@@ -162,9 +192,9 @@ public class IpRecordManager {
     private List<IpLocationInfo> getPlayerIplocationinfoById(String playerUuid, String ipLoc, int range) {
         String sql;
         if (range > 0) {
-            sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip ORDER BY count".formatted(range);
+            sql = "SELECT ip, COUNT(*) AS count FROM %s WHERE player_uuid = ? AND ip_location = ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip ORDER BY count".formatted(recordTableName, range);
         } else {
-            sql = "SELECT ip, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location = ? GROUP BY ip ORDER BY count";
+            sql = "SELECT ip, COUNT(*) AS count FROM %s WHERE player_uuid = ? AND ip_location = ? GROUP BY ip ORDER BY count".formatted(recordTableName);
         }
         List<IpLocationInfo> info = new ArrayList<>();
 
@@ -175,9 +205,9 @@ public class IpRecordManager {
             while (rs.next()) {
                 // 查询该ip的登录时间
                 if (range > 0) {
-                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM %s WHERE player_uuid = ? AND ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(recordTableName, range);
                 } else {
-                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM ip_record WHERE player_uuid = ? AND ip = ?";
+                    sql = "SELECT MIN(login_time) AS first_login_time, MAX(login_time) AS last_login_time FROM %s WHERE player_uuid = ? AND ip = ?".formatted(recordTableName);
                 }
                 PreparedStatement stmt2 = connection.prepareStatement(sql);
                 stmt2.setString(1, playerUuid);
@@ -198,16 +228,16 @@ public class IpRecordManager {
      * 查找和某玩家使用相同ip登陆过的玩家
      *
      * @param playerUuid 玩家uuid
-     * @param range            只查找range天内的log，<=0为全部
+     * @param range      只查找range天内的log，<=0为全部
      * @return 使用相同ip登录的玩家列表
      */
     public Map<String, ArrayList<SameIpStats>> getPlayersWithSameIP(String playerUuid, int range) {
         Map<String, ArrayList<SameIpStats>> sameIpPlayers = new HashMap<>();
         String sql;
         if (range > 0) {
-            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(range);
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM %s WHERE ip IN (SELECT ip FROM %s WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? AND login_time >= DATETIME('now', '-%d days') GROUP BY ip, player_uuid".formatted(recordTableName, recordTableName, range);
         } else {
-            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM ip_record WHERE ip IN (SELECT ip FROM ip_record WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? GROUP BY ip, player_uuid";
+            sql = "SELECT player_uuid, ip, ip_location, COUNT(*) AS count FROM %s WHERE ip IN (SELECT ip FROM %s WHERE player_uuid = ?) AND ip_location IS NOT NULL AND player_uuid != ? GROUP BY ip, player_uuid".formatted(recordTableName, recordTableName);
         }
         if (playerUuid == null) {
             return sameIpPlayers;
@@ -244,9 +274,9 @@ public class IpRecordManager {
     public List<IpLocationStats> getPlayerIpLocationRatio(String playerUuid, int range) {
         String sql;
         if (range > 0) {
-            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(range);
+            sql = "SELECT ip_location, COUNT(*) AS count FROM %s WHERE player_uuid = ? AND ip_location IS NOT NULL AND login_time >= DATETIME('now', '-%d days') GROUP BY ip_location".formatted(recordTableName, range);
         } else {
-            sql = "SELECT ip_location, COUNT(*) AS count FROM ip_record WHERE player_uuid = ? AND ip_location IS NOT NULL GROUP BY ip_location";
+            sql = "SELECT ip_location, COUNT(*) AS count FROM %s WHERE player_uuid = ? AND ip_location IS NOT NULL GROUP BY ip_location".formatted(recordTableName);
         }
         List<IpLocationStats> locationStats = new ArrayList<>();
         if (playerUuid == null) {
@@ -294,11 +324,12 @@ public class IpRecordManager {
 
     /**
      * 获取属地为null或未知的ip
+     *
      * @return ip列表
      */
     public List<String> getUnknownLocIp(int range) {
         List<String> unknownLocIp = new ArrayList<>();
-        String sql = "SELECT DISTINCT ip FROM ip_record WHERE (ip_location IS NULL OR ip_location='未知-未知-未知') AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+        String sql = "SELECT DISTINCT ip FROM %s WHERE (ip_location IS NULL OR ip_location='未知-未知-未知') AND login_time >= DATETIME('now', '-%d days')".formatted(recordTableName, range);
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -311,13 +342,40 @@ public class IpRecordManager {
     }
 
     /**
+     * 获取某玩家的登录ip
+     *
+     * @param uuid 玩家uuid
+     * @return ip列表
+     */
+    public List<String> getPlayerLoginIp(String uuid) {
+        List<String> ipList = new ArrayList<>();
+        String sql = "SELECT DISTINCT ip FROM %s WHERE player_uuid=?".formatted(recordTableName);
+        try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, uuid);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                ipList.add(rs.getString("ip"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().error(e.toString());
+        }
+        return ipList;
+    }
+
+    /**
      * 更新某天内的某ip的属地
-     * @param ip ip
+     *
+     * @param ip    ip
      * @param range 天数
      * @return 更新的行数
      */
     public int updateLoc(String ip, int range) {
-        String sql = "UPDATE ip_record SET ip_location = ? WHERE ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(range);
+        String sql;
+        if (range > 0) {
+            sql = "UPDATE %s SET ip_location = ? WHERE ip = ? AND login_time >= DATETIME('now', '-%d days')".formatted(recordTableName, range);
+        } else {
+            sql = "UPDATE %s SET ip_location = ? WHERE ip = ?".formatted(recordTableName);
+        }
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, getIpLocation(ip));
             stmt.setString(2, ip);
@@ -353,7 +411,7 @@ public class IpRecordManager {
         }
 
         List<String> playerName = new ArrayList<>();
-        String sql = "SELECT DISTINCT player_name FROM ip_record";
+        String sql = "SELECT DISTINCT player_name FROM %s".formatted(recordTableName);
         try (Connection connection = plugin.getIpRecordDatabase().getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -420,5 +478,30 @@ public class IpRecordManager {
         private String country = "未知";
         private String region = "未知";
         private String city = "未知";
+
+        // 反序列化器
+        public static class LocJsonRespDeserializer implements JsonDeserializer<LocJsonResp> {
+            @Override
+            public LocJsonResp deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                LocJsonResp resp = new LocJsonResp();
+                JsonObject jsonObject = json.getAsJsonObject();
+
+                String countryFieldName = (String) Config.getAssociatedAccountConf().getOrDefault("country", "country");
+                String regionFieldName = (String) Config.getAssociatedAccountConf().getOrDefault("region", "region");
+                String cityFieldName = (String) Config.getAssociatedAccountConf().getOrDefault("city", "city");
+
+                if (jsonObject.has(countryFieldName)) {
+                    resp.setCountry(jsonObject.get(countryFieldName).getAsString());
+                }
+                if (jsonObject.has(regionFieldName)) {
+                    resp.setRegion(jsonObject.get(regionFieldName).getAsString());
+                }
+                if (jsonObject.has(cityFieldName)) {
+                    resp.setCity(jsonObject.get(cityFieldName).getAsString());
+                }
+
+                return resp;
+            }
+        }
     }
 }

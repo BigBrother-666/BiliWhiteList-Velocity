@@ -35,4 +35,8 @@ associated-account:
   # 数据库记录ip属地
   db-record-loc: true
   # 获取ip属地的api
-  loc-api: https://api.ip.sb/geoip/{ip}
+  loc-api: http://api.db-ip.com/v2/free/{ip}
+  # 返回json数据的国家 省份 城市名对应的字段名
+  country: countryName
+  region: stateProv
+  city: city
