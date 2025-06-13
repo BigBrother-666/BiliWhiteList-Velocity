@@ -24,6 +24,10 @@ public class Utils {
         return 0;
     }
 
+    public static boolean isValidUuid(String uuid) {
+        return uuid.replaceAll("-", "").length() == 32;
+    }
+
     public static void broadcast(String content) {
         BiliWhiteListVelocity.instance.getServer().sendMessage(coloredMessage(content));
     }
